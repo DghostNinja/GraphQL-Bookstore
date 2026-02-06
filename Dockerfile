@@ -1,0 +1,28 @@
+FROM ubuntu:22.04
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    g++ \
+    make \
+    cmake \
+    libpq-dev \
+    libssl-dev \
+    libjwt-dev \
+    libcurl4-openssl-dev \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy source files
+COPY src/main.cpp src/main.cpp
+
+# Compile the server
+RUN g++ -std=c++17 -o bookstore-server src/main.cpp -lpq -ljwt -lcurl -lssl -lcrypto
+
+# Expose port
+EXPOSE 4000
+
+# Run the server
+CMD ["./bookstore-server"]
