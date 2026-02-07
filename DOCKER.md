@@ -181,13 +181,13 @@ git push origin v1.0.0
 
 ```bash
 # Pull latest image
-docker pull vulnerable-graphql-bookstore:latest
+docker pull $DOCKER_USERNAME/graphql:latest
 
 # Pull specific version
-docker pull vulnerable-graphql-bookstore:v1.0.0
+docker pull $DOCKER_USERNAME/graphql:v1.0.0
 
 # Run pulled image
-docker run -p 4000:4000 vulnerable-graphql-bookstore:latest
+docker run -p 4000:4000 $DOCKER_USERNAME/graphql:latest
 ```
 
 ## Production Considerations

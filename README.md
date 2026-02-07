@@ -112,7 +112,7 @@ This repository includes automated Docker image building and pushing to Docker H
 - `DOCKER_PASSWORD` - Docker Hub password or access token
 
 **Docker Hub repository:**
-- Image: `graphql`
+- Image: `DOCKER_USERNAME/graphql` (e.g., `johndoe/graphql`)
 - Tags: `latest`, branch names, version tags
 
 **Manual build and push:**
@@ -123,8 +123,11 @@ docker build -t graphql:latest .
 # Login to Docker Hub
 docker login
 
+# Tag with your username
+docker tag graphql:latest $DOCKER_USERNAME/graphql:latest
+
 # Push to Docker Hub
-docker push graphql:latest
+docker push $DOCKER_USERNAME/graphql:latest
 ```
 
 Access GraphQL Playground at: http://localhost:4000/
