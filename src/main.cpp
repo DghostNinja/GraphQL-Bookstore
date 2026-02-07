@@ -19,7 +19,7 @@
 #define PORT (getenv("PORT") ? atoi(getenv("PORT")) : 4000)
 #define BUFFER_SIZE 65536
 #define JWT_SECRET (getenv("JWT_SECRET") ? getenv("JWT_SECRET") : "CHANGE_ME_IN_PRODUCTION_real_jwt_secret_key_2024")
-#define DB_CONN (getenv("DB_CONNECTION_STRING") ? getenv("DB_CONNECTION_STRING") : "dbname=bookstore_db user=bookstore_user password=bookstore_password host=localhost port=5432")
+#define DB_CONN (getenv("DATABASE_URL") ? getenv("DATABASE_URL") : (getenv("DB_CONNECTION_STRING") ? getenv("DB_CONNECTION_STRING") : "dbname=bookstore_db user=bookstore_user password=bookstore_password host=localhost port=5432"))
 
 using namespace std;
 
@@ -197,19 +197,24 @@ User verifyJWT(const string& token) {
 }
 
 bool connectDatabase() {
+    cout << "[DB] Attempting database connection..." << endl;
+    cout << "[DB] Connection string: " << (string(DB_CONN).find("password=") != string::npos ? "configured" : "not configured") << endl;
     dbConn = PQconnectdb(DB_CONN);
     if (PQstatus(dbConn) != CONNECTION_OK) {
-        cerr << "Database connection failed: " << PQerrorMessage(dbConn) << endl;
+        cout << "[DB] Database connection FAILED: " << PQerrorMessage(dbConn) << endl;
         return false;
     }
+    cout << "[DB] Database connection successful!" << endl;
     return true;
 }
 
 void loadUsersCache() {
+    cout << "[DB] Loading users cache..." << endl;
     PGresult* res = PQexec(dbConn, "SELECT id, username, password_hash, first_name, last_name, role, is_active, phone, address, city, state, zip_code, country FROM users WHERE is_active = true");
-    
+
     if (PQresultStatus(res) == PGRES_TUPLES_OK) {
         int rows = PQntuples(res);
+        cout << "[DB] Found " << rows << " users in database" << endl;
         for (int i = 0; i < rows; i++) {
             User user;
             user.id = PQgetvalue(res, i, 0);
@@ -227,6 +232,9 @@ void loadUsersCache() {
             user.country = PQgetvalue(res, i, 12) ? PQgetvalue(res, i, 12) : "";
             usersCache[user.username] = user;
         }
+        cout << "[DB] Loaded " << usersCache.size() << " users into cache" << endl;
+    } else {
+        cout << "[DB] Failed to load users: " << PQerrorMessage(dbConn) << endl;
     }
     PQclear(res);
 }
@@ -890,27 +898,27 @@ string handleMutation(const string& query, User& currentUser) {
     bool firstField = true;
 
     if (query.find("register(") != string::npos) {
-        cerr << "[DEBUG] Register mutation detected" << endl;
+        cout << "[MUTATION] Register detected" << endl;
         string username = extractValue(query, "username");
         string password = extractValue(query, "password");
         string firstName = extractValue(query, "firstName");
         string lastName = extractValue(query, "lastName");
 
-        cerr << "[DEBUG] Extracted - username: '" << username << "', password: '" << password << "', firstName: '" << firstName << "', lastName: '" << lastName << "'" << endl;
+        cout << "[MUTATION] username='" << username << "', firstName='" << firstName << "', lastName='" << lastName << "'" << endl;
 
         if (!username.empty() && !password.empty() && !firstName.empty() && !lastName.empty()) {
-            cerr << "[DEBUG] All fields present, checking if user exists..." << endl;
+            cout << "[MUTATION] All fields valid, checking user exists..." << endl;
             if (!getUserByUsername(username)) {
-                cerr << "[DEBUG] User doesn't exist, creating new user..." << endl;
+                cout << "[MUTATION] Creating new user..." << endl;
 
                 string sql = "INSERT INTO users (username, password_hash, first_name, last_name, role) VALUES ($1, $2, $3, $4, 'user') RETURNING id";
                 const char* paramValues[4] = {username.c_str(), password.c_str(), firstName.c_str(), lastName.c_str()};
                 PGresult* res = PQexecParams(dbConn, sql.c_str(), 4, nullptr, paramValues, nullptr, nullptr, 0);
 
-                cerr << "[DEBUG] SQL execute result status: " << PQresStatus(PQresultStatus(res)) << endl;
+                cout << "[MUTATION] SQL result: " << PQresStatus(PQresultStatus(res)) << endl;
 
                 if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) > 0) {
-                    cerr << "[DEBUG] Insert successful" << endl;
+                    cout << "[MUTATION] Insert successful" << endl;
                     string userId = PQgetvalue(res, 0, 0);
                     User newUser;
                     newUser.id = userId;
@@ -1656,12 +1664,15 @@ int main() {
             
             string queryStr = "";
             string body = "";
-            
+
             if (bodyStart != string::npos) {
                 body = request.substr(bodyStart + offset);
-                
+                cout << "[REQUEST] Raw body: " << body.substr(0, min((size_t)500, body.length())) << endl;
+
                 // First, try to find the query field in JSON
                 size_t queryPos = body.find("\"query\"");
+                cout << "[REQUEST] queryPos: " << queryPos << endl;
+
                 if (queryPos != string::npos) {
                     size_t colonPos = body.find(":", queryPos);
                     if (colonPos != string::npos) {
@@ -1669,14 +1680,16 @@ int main() {
                         if (quoteStart != string::npos) {
                             size_t actualStart = quoteStart + 1;
                             size_t quoteEnd = body.find("\"", actualStart);
-                            
+
                             // Handle escaped quotes in the query string
                             while (quoteEnd != string::npos && quoteEnd > 0 && body[quoteEnd - 1] == '\\') {
                                 quoteEnd = body.find("\"", quoteEnd + 1);
                             }
-                            
+
                             if (quoteEnd != string::npos) {
                                 queryStr = body.substr(actualStart, quoteEnd - actualStart);
+                                cout << "[REQUEST] Parsed query: " << queryStr.substr(0, min((size_t)200, queryStr.length())) << endl;
+
                                 // Unescape quotes in the query string
                                 size_t pos = 0;
                                 while ((pos = queryStr.find("\\\"", pos)) != string::npos) {
@@ -1687,7 +1700,17 @@ int main() {
                     }
                 }
             }
-            
+
+            // If queryStr is empty, try parsing without "query" key
+            if (queryStr.empty() && body.find("{") != string::npos) {
+                size_t braceStart = body.find("{");
+                size_t braceEnd = body.find("}", braceStart);
+                if (braceEnd != string::npos) {
+                    queryStr = body.substr(braceStart + 1, braceEnd - braceStart - 1);
+                    cout << "[REQUEST] Fallback parsed query: " << queryStr.substr(0, min((size_t)200, queryStr.length())) << endl;
+                }
+            }
+
             bool isMutation = false;
             string trimmedQuery = queryStr;
             size_t start = trimmedQuery.find_first_not_of(" \t\n\r");
@@ -1696,11 +1719,11 @@ int main() {
                 isMutation = (trimmedQuery.find("mutation ") == 0 || trimmedQuery.find("mutation{") == 0);
             }
 
-            cerr << "[DEBUG] Processing request - isMutation: " << (isMutation ? "true" : "false") << endl;
-            cerr << "[DEBUG] Query: " << queryStr.substr(0, min((size_t)200, queryStr.length())) << endl;
+            cout << "[DEBUG] Processing request - isMutation: " << (isMutation ? "true" : "false") << endl;
+            cout << "[DEBUG] Query: " << queryStr << endl;
 
             string responseBody = handleRequest(queryStr, currentUser, isMutation);
-            cerr << "[DEBUG] Response: " << responseBody.substr(0, min((size_t)200, responseBody.length())) << "..." << endl;
+            cout << "[DEBUG] Response: " << responseBody.substr(0, min((size_t)200, responseBody.length())) << "..." << endl;
 
             string response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nContent-Length: " + to_string(responseBody.length()) + "\r\n\r\n";
             response += responseBody;
