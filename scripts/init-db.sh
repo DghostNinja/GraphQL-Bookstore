@@ -1,21 +1,39 @@
 #!/bin/bash
-# Initialize database if tables don't exist
+# Initialize database with tables and seed data
 
 echo "[INIT] Checking database connection..."
-export PGPASSWORD="${DB_PASSWORD}"
-HOST=$(echo $DB_CONNECTION_STRING | sed 's/.*@\([^:]*\):.*/\1/')
-PORT=$(echo $DB_CONNECTION_STRING | sed 's/.*:\([0-9]*\)\/.*/\1/')
-DBNAME=$(echo $DB_CONNECTION_STRING | sed 's/.*\/\([^]]*\).*/\1/')
-USER=$(echo $DB_CONNECTION_STRING | sed 's/.*:\([^:]*\)@.*/\1/')
-export PGPASSWORD=$(echo $DB_CONNECTION_STRING | sed 's/.*:\([^:]*\)@.*/\1/')
 
-# Check if users table exists
-EXISTS=$(psql -h $HOST -p $PORT -U $USER -d $DBNAME -t -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users');" 2>/dev/null | xargs)
-
-if [ "$EXISTS" = "f" ]; then
-    echo "[INIT] Tables don't exist, running init_database.sql..."
-    psql "$DB_CONNECTION_STRING" -f /app/scripts/init_database.sql
-    echo "[INIT] Database initialized!"
-else
-    echo "[INIT] Tables already exist, skipping init."
+# Extract connection info from DATABASE_URL or DB_CONNECTION_STRING
+if [ -n "$DATABASE_URL" ]; then
+    export DB_CONNECTION_STRING="$DATABASE_URL"
 fi
+
+if [ -z "$DB_CONNECTION_STRING" ]; then
+    echo "[INIT] No database connection string found, skipping init."
+    exit 0
+fi
+
+# Parse connection string
+CONN_STR="$DB_CONNECTION_STRING"
+HOST=$(echo "$CONN_STR" | sed -n 's/.*@\([^:]*\):.*/\1/p')
+PORT=$(echo "$CONN_STR" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+DBNAME=$(echo "$CONN_STR" | sed -n 's/.*\/\(.*\)/\1/p' | sed 's/\?.*//')
+USER=$(echo "$CONN_STR" | sed -n 's/.*:\/\([^:]*\):.*/\1/p')
+export PGPASSWORD=$(echo "$CONN_STR" | sed -n 's/.*:\([^:]*\)@.*/\1/p')
+
+echo "[INIT] Connecting to: $HOST:$PORT/$DBNAME as $USER"
+
+# Check if users table has data
+USER_COUNT=$(psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DBNAME" -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | xargs)
+
+echo "[INIT] Current user count: $USER_COUNT"
+
+if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
+    echo "[INIT] No users found, initializing database..."
+    psql "$DB_CONNECTION_STRING" -f /app/scripts/init_database.sql
+    echo "[INIT] Database initialized with seed data!"
+else
+    echo "[INIT] Database already has data ($USER_COUNT users), skipping init."
+fi
+
+echo "[INIT] Ready to start API server."
