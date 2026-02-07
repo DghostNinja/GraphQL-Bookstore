@@ -43,7 +43,18 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=
 
-      - name: Build and push Docker image
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          tags: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
+
+      - name: Push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -53,13 +64,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
+        if: ${{ github.event_name != 'pull_request' }}
 
       - name: Test Docker image
         run: |
-          docker pull ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
-          docker run -d -p 4001:4000 --name test-api ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          docker run -d -p 4001:4000 --name test-api ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
           sleep 5
           curl -f http://localhost:4001/ || exit 1
           docker stop test-api
           docker rm test-api
-        if: ${{ github.event_name != 'pull_request' }}
