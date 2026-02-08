@@ -208,8 +208,41 @@ bool connectDatabase() {
     return true;
 }
 
+bool checkDatabaseConnection() {
+    if (dbConn == nullptr) {
+        cout << "[DB] No connection object, reconnecting..." << endl;
+        return connectDatabase();
+    }
+    // Check if connection is still valid
+    ConnStatusType status = PQstatus(dbConn);
+    if (status != CONNECTION_OK) {
+        cout << "[DB] Connection status bad (" << status << "), reconnecting..." << endl;
+        PQfinish(dbConn);
+        dbConn = nullptr;
+        return connectDatabase();
+    }
+    // Try a simple query to verify connection is alive
+    PGresult* res = PQexec(dbConn, "SELECT 1");
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        cout << "[DB] Connection test failed, reconnecting..." << endl;
+        PQclear(res);
+        PQfinish(dbConn);
+        dbConn = nullptr;
+        return connectDatabase();
+    }
+    PQclear(res);
+    return true;
+}
+
 void loadUsersCache() {
     cout << "[DB] Loading users cache..." << endl;
+
+    // Check and reconnect if needed
+    if (!checkDatabaseConnection()) {
+        cout << "[DB] Cannot load users - no database connection" << endl;
+        return;
+    }
+
     PGresult* res = PQexec(dbConn, "SELECT id, username, password_hash, first_name, last_name, role, is_active, phone, address, city, state, zip_code, country FROM users WHERE is_active = true");
 
     if (PQresultStatus(res) == PGRES_TUPLES_OK) {
@@ -240,6 +273,10 @@ void loadUsersCache() {
 }
 
 void loadBooksCache() {
+    if (!checkDatabaseConnection()) {
+        cout << "[DB] Cannot load books - no database connection" << endl;
+        return;
+    }
     PGresult* res = PQexec(dbConn, "SELECT id, isbn, title, description, author_id, category_id, price, sale_price, stock_quantity, rating_average, review_count, is_featured, is_bestseller, is_active FROM books WHERE is_active = true");
 
     if (PQresultStatus(res) == PGRES_TUPLES_OK) {
@@ -567,6 +604,13 @@ string handleQuery(const string& query, const User& currentUser) {
     stringstream response;
     response << "{\"data\":{";
     bool firstField = true;
+
+    // Check database connection before processing
+    if (!checkDatabaseConnection()) {
+        response << "\"error\":\"Database connection failed\"";
+        response << "}}";
+        return response.str();
+    }
 
     if (query.find("__schema") != string::npos) {
         if (!firstField) response << ",";
@@ -896,6 +940,13 @@ string handleMutation(const string& query, User& currentUser) {
     stringstream response;
     response << "{\"data\":{";
     bool firstField = true;
+
+    // Check database connection before processing
+    if (!checkDatabaseConnection()) {
+        response << "\"error\":\"Database connection failed\"";
+        response << "}}";
+        return response.str();
+    }
 
     if (query.find("register(") != string::npos) {
         cout << "[MUTATION] Register detected" << endl;
@@ -1667,42 +1718,151 @@ int main() {
 
             if (bodyStart != string::npos) {
                 body = request.substr(bodyStart + offset);
+                cout << "[REQUEST] Raw body length: " << body.length() << endl;
                 cout << "[REQUEST] Raw body: " << body << endl;
 
-                // Find the "query" field value - extract everything between quotes
-                size_t queryKeyPos = body.find("\"query\"");
-                if (queryKeyPos != string::npos) {
-                    size_t colonPos = body.find(":", queryKeyPos);
-                    if (colonPos != string::npos) {
-                        // Find the first quote after the colon
-                        size_t firstQuote = body.find("\"", colonPos + 1);
-                        if (firstQuote != string::npos) {
-                            // Find the last quote in the body (closing quote of query value)
-                            size_t lastQuote = body.rfind("\"}");
-                            if (lastQuote == string::npos || lastQuote <= firstQuote) {
-                                lastQuote = body.rfind("\"");
-                            }
-                            if (lastQuote > firstQuote) {
-                                queryStr = body.substr(firstQuote + 1, lastQuote - firstQuote - 1);
-                                cout << "[REQUEST] Parsed query: " << queryStr << endl;
+                // Robust JSON parsing for query field
+                size_t queryStart = body.find("\"query\"");
+                if (queryStart != string::npos) {
+                    cout << "[REQUEST] Found query key at: " << queryStart << endl;
 
-                                // Unescape quotes
-                                size_t pos = 0;
-                                while ((pos = queryStr.find("\\\"", pos)) != string::npos) {
-                                    queryStr.replace(pos, 2, "\"");
+                    size_t colonPos = body.find(":", queryStart);
+                    if (colonPos != string::npos) {
+                        cout << "[REQUEST] Found colon at: " << colonPos << endl;
+
+                        size_t valueStart = body.find("\"", colonPos + 1);
+                        if (valueStart != string::npos) {
+                            cout << "[REQUEST] Found opening quote at: " << valueStart << endl;
+
+                            // Find the closing quote - properly handle escape sequences
+                            size_t searchPos = valueStart + 1;
+                            size_t valueEnd = string::npos;
+                            int braceDepth = 0;
+                            int parenDepth = 0;
+                            bool inString = true;
+
+                            for (size_t i = searchPos; i < body.length(); i++) {
+                                char c = body[i];
+
+                                if (inString) {
+                                    if (c == '\\' && i + 1 < body.length()) {
+                                        // Skip escaped character
+                                        i++;
+                                        continue;
+                                    }
+                                    if (c == '"') {
+                                        // End of string - check if we should end parsing
+                                        // For GraphQL, we want to end at the first unescaped quote
+                                        // that's not inside braces or parens
+                                        if (braceDepth == 0 && parenDepth == 0) {
+                                            valueEnd = i;
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    if (c == '{') braceDepth++;
+                                    else if (c == '}') braceDepth--;
+                                    else if (c == '(') parenDepth++;
+                                    else if (c == ')') parenDepth--;
+                                    else if (c == '"') inString = !inString;
                                 }
                             }
+
+                            if (valueEnd != string::npos && valueEnd > valueStart) {
+                                queryStr = body.substr(valueStart + 1, valueEnd - valueStart - 1);
+                                cout << "[REQUEST] Extracted query: " << queryStr << endl;
+
+                                // Unescape the string
+                                string unescaped;
+                                for (size_t i = 0; i < queryStr.length(); i++) {
+                                    if (queryStr[i] == '\\' && i + 1 < queryStr.length()) {
+                                        char next = queryStr[i + 1];
+                                        if (next == 'n') {
+                                            unescaped += '\n';
+                                            i++;
+                                        } else if (next == 't') {
+                                            unescaped += '\t';
+                                            i++;
+                                        } else if (next == '"') {
+                                            unescaped += '"';
+                                            i++;
+                                        } else if (next == '\\') {
+                                            unescaped += '\\';
+                                            i++;
+                                        } else if (next == '/') {
+                                            unescaped += '/';
+                                            i++;
+                                        } else if (next == 'b') {
+                                            unescaped += '\b';
+                                            i++;
+                                        } else if (next == 'f') {
+                                            unescaped += '\f';
+                                            i++;
+                                        } else if (next == 'r') {
+                                            unescaped += '\r';
+                                            i++;
+                                        } else {
+                                            unescaped += queryStr[i];
+                                        }
+                                    } else {
+                                        unescaped += queryStr[i];
+                                    }
+                                }
+                                queryStr = unescaped;
+                                cout << "[REQUEST] Final query: " << queryStr << endl;
+                            } else {
+                                cout << "[REQUEST] Failed to find closing quote, trying alternative approach" << endl;
+
+                                // Alternative: Find the query content between first { and last }
+                                size_t firstBrace = body.find("{", valueStart);
+                                if (firstBrace != string::npos) {
+                                    // Find matching closing brace
+                                    int depth = 0;
+                                    size_t lastBrace = string::npos;
+                                    for (size_t i = firstBrace; i < body.length(); i++) {
+                                        if (body[i] == '{') depth++;
+                                        else if (body[i] == '}') {
+                                            depth--;
+                                            if (depth == 0) {
+                                                lastBrace = i;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (lastBrace != string::npos) {
+                                        queryStr = body.substr(firstBrace, lastBrace - firstBrace + 1);
+                                        cout << "[REQUEST] Alternative parsed query: " << queryStr << endl;
+                                    }
+                                }
+                            }
+                        } else {
+                            cout << "[REQUEST] No opening quote found" << endl;
                         }
+                    } else {
+                        cout << "[REQUEST] No colon found" << endl;
                     }
+                } else {
+                    cout << "[REQUEST] No query key found" << endl;
                 }
             }
 
-            // If queryStr is empty, try parsing without "query" key
+            // If queryStr is still empty, try parsing without "query" key
             if (queryStr.empty() && body.find("{") != string::npos) {
-                size_t braceStart = body.find("{");
-                size_t braceEnd = body.find("}", braceStart);
-                if (braceEnd != string::npos) {
-                    queryStr = body.substr(braceStart + 1, braceEnd - braceStart - 1);
+                size_t firstBrace = body.find("{");
+                int depth = 0;
+                size_t lastBrace = string::npos;
+                for (size_t i = firstBrace; i < body.length(); i++) {
+                    if (body[i] == '{') depth++;
+                    else if (body[i] == '}') {
+                        depth--;
+                        if (depth == 0) {
+                            lastBrace = i;
+                            break;
+                        }
+                    }
+                }
+                if (lastBrace != string::npos) {
+                    queryStr = body.substr(firstBrace, lastBrace - firstBrace + 1);
                     cout << "[REQUEST] Fallback parsed query: " << queryStr.substr(0, min((size_t)200, queryStr.length())) << endl;
                 }
             }
