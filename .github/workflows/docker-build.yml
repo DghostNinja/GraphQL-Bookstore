@@ -102,18 +102,14 @@ jobs:
             RESPONSE=$(curl -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
               -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
               -H "Content-Type: application/json" \
-              -d '{"clearCache": false}' \
+              -d '{}' \
               -w "%{http_code}" -s -o /dev/null)
             if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "201" ]; then
               echo "✓ Render deployment triggered successfully!"
             else
               echo "✗ Render API returned: $RESPONSE"
-              echo "Check your RENDER_API_KEY and RENDER_SERVICE_ID secrets"
             fi
           else
             echo "Skipping Render deploy - secrets not configured"
-            echo "Add these secrets in GitHub Settings → Secrets:"
-            echo "  - RENDER_API_KEY"
-            echo "  - RENDER_SERVICE_ID"
           fi
         if: github.event_name != 'pull_request'
