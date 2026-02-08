@@ -197,57 +197,36 @@ User verifyJWT(const string& token) {
 }
 
 bool connectDatabase() {
-    cout << "[DB] Attempting database connection..." << endl;
-    cout << "[DB] Connection string: " << (string(DB_CONN).find("password=") != string::npos ? "configured" : "not configured") << endl;
     dbConn = PQconnectdb(DB_CONN);
     if (PQstatus(dbConn) != CONNECTION_OK) {
-        cout << "[DB] Database connection FAILED: " << PQerrorMessage(dbConn) << endl;
+        cerr << "[DB] Database connection FAILED: " << PQerrorMessage(dbConn) << endl;
         return false;
     }
-    cout << "[DB] Database connection successful!" << endl;
     return true;
 }
 
 bool checkDatabaseConnection() {
     if (dbConn == nullptr) {
-        cout << "[DB] No connection object, reconnecting..." << endl;
         return connectDatabase();
     }
-    // Check if connection is still valid
     ConnStatusType status = PQstatus(dbConn);
     if (status != CONNECTION_OK) {
-        cout << "[DB] Connection status bad (" << status << "), reconnecting..." << endl;
         PQfinish(dbConn);
         dbConn = nullptr;
         return connectDatabase();
     }
-    // Try a simple query to verify connection is alive
-    PGresult* res = PQexec(dbConn, "SELECT 1");
-    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        cout << "[DB] Connection test failed, reconnecting..." << endl;
-        PQclear(res);
-        PQfinish(dbConn);
-        dbConn = nullptr;
-        return connectDatabase();
-    }
-    PQclear(res);
     return true;
 }
 
 void loadUsersCache() {
-    cout << "[DB] Loading users cache..." << endl;
-
-    // Check and reconnect if needed
     if (!checkDatabaseConnection()) {
-        cout << "[DB] Cannot load users - no database connection" << endl;
+        cerr << "[DB] Cannot load users - no database connection" << endl;
         return;
     }
-
     PGresult* res = PQexec(dbConn, "SELECT id, username, password_hash, first_name, last_name, role, is_active, phone, address, city, state, zip_code, country FROM users WHERE is_active = true");
 
     if (PQresultStatus(res) == PGRES_TUPLES_OK) {
         int rows = PQntuples(res);
-        cout << "[DB] Found " << rows << " users in database" << endl;
         for (int i = 0; i < rows; i++) {
             User user;
             user.id = PQgetvalue(res, i, 0);
@@ -265,9 +244,6 @@ void loadUsersCache() {
             user.country = PQgetvalue(res, i, 12) ? PQgetvalue(res, i, 12) : "";
             usersCache[user.username] = user;
         }
-        cout << "[DB] Loaded " << usersCache.size() << " users into cache" << endl;
-    } else {
-        cout << "[DB] Failed to load users: " << PQerrorMessage(dbConn) << endl;
     }
     PQclear(res);
 }
@@ -949,27 +925,18 @@ string handleMutation(const string& query, User& currentUser) {
     }
 
     if (query.find("register(") != string::npos) {
-        cout << "[MUTATION] Register detected" << endl;
         string username = extractValue(query, "username");
         string password = extractValue(query, "password");
         string firstName = extractValue(query, "firstName");
         string lastName = extractValue(query, "lastName");
 
-        cout << "[MUTATION] username='" << username << "', firstName='" << firstName << "', lastName='" << lastName << "'" << endl;
-
         if (!username.empty() && !password.empty() && !firstName.empty() && !lastName.empty()) {
-            cout << "[MUTATION] All fields valid, checking user exists..." << endl;
             if (!getUserByUsername(username)) {
-                cout << "[MUTATION] Creating new user..." << endl;
-
                 string sql = "INSERT INTO users (username, password_hash, first_name, last_name, role) VALUES ($1, $2, $3, $4, 'user') RETURNING id";
                 const char* paramValues[4] = {username.c_str(), password.c_str(), firstName.c_str(), lastName.c_str()};
                 PGresult* res = PQexecParams(dbConn, sql.c_str(), 4, nullptr, paramValues, nullptr, nullptr, 0);
 
-                cout << "[MUTATION] SQL result: " << PQresStatus(PQresultStatus(res)) << endl;
-
                 if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) > 0) {
-                    cout << "[MUTATION] Insert successful" << endl;
                     string userId = PQgetvalue(res, 0, 0);
                     User newUser;
                     newUser.id = userId;
@@ -982,8 +949,6 @@ string handleMutation(const string& query, User& currentUser) {
                     usersCache[username] = newUser;
 
                     string token = generateJWT(newUser);
-                    cerr << "[DEBUG] Generated token: " << token.substr(0, 20) << "..." << endl;
-
                     if (!firstField) response << ",";
                     response << "\"register\":{";
                     response << "\"success\":true,";
@@ -993,17 +958,15 @@ string handleMutation(const string& query, User& currentUser) {
                     response << "}";
                     firstField = false;
                 } else {
-                    cerr << "[DEBUG] Insert FAILED: " << PQerrorMessage(dbConn) << endl;
                     if (!firstField) response << ",";
                     response << "\"register\":{";
                     response << "\"success\":false,";
-                    response << "\"message\":\"Database error: " << escapeJson(PQerrorMessage(dbConn)) << "\"";
+                    response << "\"message\":\"Database error\"";
                     response << "}";
                     firstField = false;
                 }
                 PQclear(res);
             } else {
-                cerr << "[DEBUG] Username already exists" << endl;
                 if (!firstField) response << ",";
                 response << "\"register\":{";
                 response << "\"success\":false,";
@@ -1012,7 +975,6 @@ string handleMutation(const string& query, User& currentUser) {
                 firstField = false;
             }
         } else {
-            cerr << "[DEBUG] Missing required fields" << endl;
             if (!firstField) response << ",";
             response << "\"register\":{";
             response << "\"success\":false,";
@@ -1718,23 +1680,13 @@ int main() {
 
             if (bodyStart != string::npos) {
                 body = request.substr(bodyStart + offset);
-                cout << "[REQUEST] Raw body length: " << body.length() << endl;
-                cout << "[REQUEST] Raw body: " << body << endl;
 
-                // Robust JSON parsing for query field
                 size_t queryStart = body.find("\"query\"");
                 if (queryStart != string::npos) {
-                    cout << "[REQUEST] Found query key at: " << queryStart << endl;
-
                     size_t colonPos = body.find(":", queryStart);
                     if (colonPos != string::npos) {
-                        cout << "[REQUEST] Found colon at: " << colonPos << endl;
-
                         size_t valueStart = body.find("\"", colonPos + 1);
                         if (valueStart != string::npos) {
-                            cout << "[REQUEST] Found opening quote at: " << valueStart << endl;
-
-                            // Find the closing quote - properly handle escape sequences
                             size_t searchPos = valueStart + 1;
                             size_t valueEnd = string::npos;
                             int braceDepth = 0;
@@ -1743,21 +1695,14 @@ int main() {
 
                             for (size_t i = searchPos; i < body.length(); i++) {
                                 char c = body[i];
-
                                 if (inString) {
                                     if (c == '\\' && i + 1 < body.length()) {
-                                        // Skip escaped character
                                         i++;
                                         continue;
                                     }
-                                    if (c == '"') {
-                                        // End of string - check if we should end parsing
-                                        // For GraphQL, we want to end at the first unescaped quote
-                                        // that's not inside braces or parens
-                                        if (braceDepth == 0 && parenDepth == 0) {
-                                            valueEnd = i;
-                                            break;
-                                        }
+                                    if (c == '"' && braceDepth == 0 && parenDepth == 0) {
+                                        valueEnd = i;
+                                        break;
                                     }
                                 } else {
                                     if (c == '{') braceDepth++;
@@ -1770,100 +1715,46 @@ int main() {
 
                             if (valueEnd != string::npos && valueEnd > valueStart) {
                                 queryStr = body.substr(valueStart + 1, valueEnd - valueStart - 1);
-                                cout << "[REQUEST] Extracted query: " << queryStr << endl;
-
-                                // Unescape the string
                                 string unescaped;
                                 for (size_t i = 0; i < queryStr.length(); i++) {
                                     if (queryStr[i] == '\\' && i + 1 < queryStr.length()) {
                                         char next = queryStr[i + 1];
-                                        if (next == 'n') {
-                                            unescaped += '\n';
-                                            i++;
-                                        } else if (next == 't') {
-                                            unescaped += '\t';
-                                            i++;
-                                        } else if (next == '"') {
-                                            unescaped += '"';
-                                            i++;
-                                        } else if (next == '\\') {
-                                            unescaped += '\\';
-                                            i++;
-                                        } else if (next == '/') {
-                                            unescaped += '/';
-                                            i++;
-                                        } else if (next == 'b') {
-                                            unescaped += '\b';
-                                            i++;
-                                        } else if (next == 'f') {
-                                            unescaped += '\f';
-                                            i++;
-                                        } else if (next == 'r') {
-                                            unescaped += '\r';
-                                            i++;
-                                        } else {
-                                            unescaped += queryStr[i];
-                                        }
+                                        if (next == 'n') { unescaped += '\n'; i++; }
+                                        else if (next == 't') { unescaped += '\t'; i++; }
+                                        else if (next == '"') { unescaped += '"'; i++; }
+                                        else if (next == '\\') { unescaped += '\\'; i++; }
+                                        else if (next == '/') { unescaped += '/'; i++; }
+                                        else if (next == 'b') { unescaped += '\b'; i++; }
+                                        else if (next == 'f') { unescaped += '\f'; i++; }
+                                        else if (next == 'r') { unescaped += '\r'; i++; }
+                                        else { unescaped += queryStr[i]; }
                                     } else {
                                         unescaped += queryStr[i];
                                     }
                                 }
                                 queryStr = unescaped;
-                                cout << "[REQUEST] Final query: " << queryStr << endl;
-                            } else {
-                                cout << "[REQUEST] Failed to find closing quote, trying alternative approach" << endl;
-
-                                // Alternative: Find the query content between first { and last }
-                                size_t firstBrace = body.find("{", valueStart);
-                                if (firstBrace != string::npos) {
-                                    // Find matching closing brace
-                                    int depth = 0;
-                                    size_t lastBrace = string::npos;
-                                    for (size_t i = firstBrace; i < body.length(); i++) {
-                                        if (body[i] == '{') depth++;
-                                        else if (body[i] == '}') {
-                                            depth--;
-                                            if (depth == 0) {
-                                                lastBrace = i;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    if (lastBrace != string::npos) {
-                                        queryStr = body.substr(firstBrace, lastBrace - firstBrace + 1);
-                                        cout << "[REQUEST] Alternative parsed query: " << queryStr << endl;
-                                    }
-                                }
                             }
-                        } else {
-                            cout << "[REQUEST] No opening quote found" << endl;
                         }
-                    } else {
-                        cout << "[REQUEST] No colon found" << endl;
                     }
-                } else {
-                    cout << "[REQUEST] No query key found" << endl;
                 }
-            }
 
-            // If queryStr is still empty, try parsing without "query" key
-            if (queryStr.empty() && body.find("{") != string::npos) {
-                size_t firstBrace = body.find("{");
-                int depth = 0;
-                size_t lastBrace = string::npos;
-                for (size_t i = firstBrace; i < body.length(); i++) {
-                    if (body[i] == '{') depth++;
-                    else if (body[i] == '}') {
-                        depth--;
-                        if (depth == 0) {
-                            lastBrace = i;
-                            break;
+                if (queryStr.empty() && body.find("{") != string::npos) {
+                    size_t firstBrace = body.find("{");
+                    int depth = 0;
+                    size_t lastBrace = string::npos;
+                    for (size_t i = firstBrace; i < body.length(); i++) {
+                        if (body[i] == '{') depth++;
+                        else if (body[i] == '}') {
+                            depth--;
+                            if (depth == 0) {
+                                lastBrace = i;
+                                break;
+                            }
                         }
                     }
-                }
-                if (lastBrace != string::npos) {
-                    queryStr = body.substr(firstBrace, lastBrace - firstBrace + 1);
-                    cout << "[REQUEST] Fallback parsed query: " << queryStr.substr(0, min((size_t)200, queryStr.length())) << endl;
+                    if (lastBrace != string::npos) {
+                        queryStr = body.substr(firstBrace, lastBrace - firstBrace + 1);
+                    }
                 }
             }
 
@@ -1875,17 +1766,11 @@ int main() {
                 isMutation = (trimmedQuery.find("mutation ") == 0 || trimmedQuery.find("mutation{") == 0);
             }
 
-            cout << "[DEBUG] Processing request - isMutation: " << (isMutation ? "true" : "false") << endl;
-            cout << "[DEBUG] Query: " << queryStr << endl;
-
             string responseBody = handleRequest(queryStr, currentUser, isMutation);
-            cout << "[DEBUG] Response: " << responseBody.substr(0, min((size_t)200, responseBody.length())) << "..." << endl;
 
             string response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nContent-Length: " + to_string(responseBody.length()) + "\r\n\r\n";
             response += responseBody;
             send(clientSocket, response.c_str(), response.length(), 0);
-
-            cout << "Request handled" << endl;
         } else if (request.find("OPTIONS") == 0) {
             string response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nAccess-Control-Max-Age: 3600\r\nContent-Length: 0\r\n\r\n";
             send(clientSocket, response.c_str(), response.length(), 0);
