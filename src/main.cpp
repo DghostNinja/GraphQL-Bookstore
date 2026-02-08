@@ -1693,15 +1693,14 @@ int main() {
             
             User currentUser = extractAuthUser(authHeaderStr);
             
-            // Find the JSON body
             size_t bodyStart = request.find("{");
             size_t bodyEnd = request.rfind("}");
             
             string queryStr = "";
             if (bodyStart != string::npos && bodyEnd != string::npos && bodyEnd > bodyStart) {
                 string body = request.substr(bodyStart, bodyEnd - bodyStart + 1);
+                cerr << "[DEBUG] Raw body: " << body << endl;
                 
-                // Find "query" and extract its value
                 size_t queryPos = body.find("query");
                 if (queryPos != string::npos) {
                     size_t colonPos = body.find(":", queryPos);
@@ -1719,7 +1718,7 @@ int main() {
             
             bool isMutation = (queryStr.find("mutation") != string::npos);
             
-            cerr << "[DEBUG] Query: '" << queryStr << "'" << endl;
+            cerr << "[DEBUG] Extracted query: '" << queryStr << "'" << endl;
             cerr << "[DEBUG] IsMutation: " << (isMutation ? "true" : "false") << endl;
             
             string responseBody = handleRequest(queryStr, currentUser, isMutation);
