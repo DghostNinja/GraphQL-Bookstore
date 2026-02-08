@@ -1699,9 +1699,15 @@ int main() {
                 
                 if (bodyStart != string::npos) {
                     body = request.substr(bodyStart);
+                    cerr << "[DEBUG] Body found: " << body.substr(0, min((size_t)200, body.length())) << endl;
+                    
                     size_t queryStart = body.find("\"query\":");
+                    cerr << "[DEBUG] queryStart: " << queryStart << endl;
+                    
                     if (queryStart != string::npos) {
                         size_t valueStart = body.find("\"", queryStart + 8);
+                        cerr << "[DEBUG] valueStart: " << valueStart << endl;
+                        
                         if (valueStart != string::npos) {
                             size_t searchPos = valueStart + 1;
                             size_t valueEnd = string::npos;
@@ -1728,9 +1734,13 @@ int main() {
                                     else if (c == '"') inString = !inString;
                                 }
                             }
+                            
+                            cerr << "[DEBUG] valueEnd: " << valueEnd << endl;
 
                             if (valueEnd != string::npos && valueEnd > valueStart) {
                                 queryStr = body.substr(valueStart + 1, valueEnd - valueStart - 1);
+                                cerr << "[DEBUG] Extracted query: " << queryStr << endl;
+                                
                                 string unescaped;
                                 for (size_t i = 0; i < queryStr.length(); i++) {
                                     if (queryStr[i] == '\\' && i + 1 < queryStr.length()) {
@@ -1754,6 +1764,7 @@ int main() {
                     }
 
                     if (queryStr.empty()) {
+                        cerr << "[DEBUG] Query empty, trying fallback..." << endl;
                         size_t firstBrace = body.find("{");
                         int depth = 0;
                         size_t lastBrace = string::npos;
@@ -1769,8 +1780,11 @@ int main() {
                         }
                         if (lastBrace != string::npos) {
                             queryStr = body.substr(firstBrace, lastBrace - firstBrace + 1);
+                            cerr << "[DEBUG] Fallback query: " << queryStr << endl;
                         }
                     }
+                } else {
+                    cerr << "[DEBUG] No body found!" << endl;
                 }
 
                 bool isMutation = false;
@@ -1781,12 +1795,12 @@ int main() {
                     isMutation = (trimmedQuery.find("mutation ") == 0 || trimmedQuery.find("mutation{") == 0);
                 }
 
-                cerr << "[REQUEST] Query: " << queryStr.substr(0, 100) << "..." << endl;
-                cerr << "[REQUEST] IsMutation: " << (isMutation ? "true" : "false") << endl;
+                cerr << "[DEBUG] Final query: '" << queryStr << "'" << endl;
+                cerr << "[DEBUG] IsMutation: " << (isMutation ? "true" : "false") << endl;
 
                 string responseBody = handleRequest(queryStr, currentUser, isMutation);
 
-                cerr << "[RESPONSE] " << responseBody.substr(0, 100) << "..." << endl;
+                cerr << "[RESPONSE] " << responseBody.substr(0, min((size_t)200, responseBody.length())) << "..." << endl;
 
                 string response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nContent-Length: " + to_string(responseBody.length()) + "\r\n\r\n";
                 response += responseBody;
