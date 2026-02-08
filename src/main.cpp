@@ -1693,7 +1693,7 @@ int main() {
             
             User currentUser = extractAuthUser(authHeaderStr);
             
-            // Find the JSON body - look for { after headers
+            // Find the JSON body
             size_t bodyStart = request.find("{");
             size_t bodyEnd = request.rfind("}");
             
@@ -1701,26 +1701,23 @@ int main() {
             if (bodyStart != string::npos && bodyEnd != string::npos && bodyEnd > bodyStart) {
                 string body = request.substr(bodyStart, bodyEnd - bodyStart + 1);
                 
-                // Find "query": or "query" :
-                size_t queryKeyPos = body.find("query");
-                if (queryKeyPos != string::npos) {
-                    // Find the colon after query
-                    size_t colonPos = body.find(":", queryKeyPos);
+                // Find "query" and extract its value
+                size_t queryPos = body.find("query");
+                if (queryPos != string::npos) {
+                    size_t colonPos = body.find(":", queryPos);
                     if (colonPos != string::npos && colonPos < bodyEnd) {
-                        // Find opening quote
-                        size_t openQuote = body.find("\"", colonPos);
-                        if (openQuote != string::npos && openQuote < bodyEnd) {
-                            // Find closing quote
-                            size_t closeQuote = body.find("\"", openQuote + 1);
-                            if (closeQuote != string::npos && closeQuote < bodyEnd) {
-                                queryStr = body.substr(openQuote + 1, closeQuote - openQuote - 1);
+                        size_t firstQuote = body.find("\"", colonPos);
+                        if (firstQuote != string::npos && firstQuote < bodyEnd) {
+                            size_t secondQuote = body.find("\"", firstQuote + 1);
+                            if (secondQuote != string::npos && secondQuote < bodyEnd) {
+                                queryStr = body.substr(firstQuote + 1, secondQuote - firstQuote - 1);
                             }
                         }
                     }
                 }
             }
             
-            bool isMutation = queryStr.find("mutation") != string::npos;
+            bool isMutation = (queryStr.find("mutation") != string::npos);
             
             cerr << "[DEBUG] Query: '" << queryStr << "'" << endl;
             cerr << "[DEBUG] IsMutation: " << (isMutation ? "true" : "false") << endl;
