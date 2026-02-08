@@ -1699,59 +1699,56 @@ int main() {
                 
                 if (bodyStart != string::npos) {
                     body = request.substr(bodyStart);
-                    size_t queryStart = body.find("\"query\"");
+                    size_t queryStart = body.find("\"query\":");
                     if (queryStart != string::npos) {
-                        size_t colonPos = body.find(":", queryStart);
-                        if (colonPos != string::npos) {
-                            size_t valueStart = body.find("\"", colonPos + 1);
-                            if (valueStart != string::npos) {
-                                size_t searchPos = valueStart + 1;
-                                size_t valueEnd = string::npos;
-                                int braceDepth = 0;
-                                int parenDepth = 0;
-                                bool inString = true;
+                        size_t valueStart = body.find("\"", queryStart + 8);
+                        if (valueStart != string::npos) {
+                            size_t searchPos = valueStart + 1;
+                            size_t valueEnd = string::npos;
+                            int braceDepth = 0;
+                            int parenDepth = 0;
+                            bool inString = true;
 
-                                for (size_t i = searchPos; i < body.length(); i++) {
-                                    char c = body[i];
-                                    if (inString) {
-                                        if (c == '\\' && i + 1 < body.length()) {
-                                            i++;
-                                            continue;
-                                        }
-                                        if (c == '"' && braceDepth == 0 && parenDepth == 0) {
-                                            valueEnd = i;
-                                            break;
-                                        }
+                            for (size_t i = searchPos; i < body.length(); i++) {
+                                char c = body[i];
+                                if (inString) {
+                                    if (c == '\\' && i + 1 < body.length()) {
+                                        i++;
+                                        continue;
+                                    }
+                                    if (c == '"' && braceDepth == 0 && parenDepth == 0) {
+                                        valueEnd = i;
+                                        break;
+                                    }
+                                } else {
+                                    if (c == '{') braceDepth++;
+                                    else if (c == '}') braceDepth--;
+                                    else if (c == '(') parenDepth++;
+                                    else if (c == ')') parenDepth--;
+                                    else if (c == '"') inString = !inString;
+                                }
+                            }
+
+                            if (valueEnd != string::npos && valueEnd > valueStart) {
+                                queryStr = body.substr(valueStart + 1, valueEnd - valueStart - 1);
+                                string unescaped;
+                                for (size_t i = 0; i < queryStr.length(); i++) {
+                                    if (queryStr[i] == '\\' && i + 1 < queryStr.length()) {
+                                        char next = queryStr[i + 1];
+                                        if (next == 'n') { unescaped += '\n'; i++; }
+                                        else if (next == 't') { unescaped += '\t'; i++; }
+                                        else if (next == '"') { unescaped += '"'; i++; }
+                                        else if (next == '\\') { unescaped += '\\'; i++; }
+                                        else if (next == '/') { unescaped += '/'; i++; }
+                                        else if (next == 'b') { unescaped += '\b'; i++; }
+                                        else if (next == 'f') { unescaped += '\f'; i++; }
+                                        else if (next == 'r') { unescaped += '\r'; i++; }
+                                        else { unescaped += queryStr[i]; }
                                     } else {
-                                        if (c == '{') braceDepth++;
-                                        else if (c == '}') braceDepth--;
-                                        else if (c == '(') parenDepth++;
-                                        else if (c == ')') parenDepth--;
-                                        else if (c == '"') inString = !inString;
+                                        unescaped += queryStr[i];
                                     }
                                 }
-
-                                if (valueEnd != string::npos && valueEnd > valueStart) {
-                                    queryStr = body.substr(valueStart + 1, valueEnd - valueStart - 1);
-                                    string unescaped;
-                                    for (size_t i = 0; i < queryStr.length(); i++) {
-                                        if (queryStr[i] == '\\' && i + 1 < queryStr.length()) {
-                                            char next = queryStr[i + 1];
-                                            if (next == 'n') { unescaped += '\n'; i++; }
-                                            else if (next == 't') { unescaped += '\t'; i++; }
-                                            else if (next == '"') { unescaped += '"'; i++; }
-                                            else if (next == '\\') { unescaped += '\\'; i++; }
-                                            else if (next == '/') { unescaped += '/'; i++; }
-                                            else if (next == 'b') { unescaped += '\b'; i++; }
-                                            else if (next == 'f') { unescaped += '\f'; i++; }
-                                            else if (next == 'r') { unescaped += '\r'; i++; }
-                                            else { unescaped += queryStr[i]; }
-                                        } else {
-                                            unescaped += queryStr[i];
-                                        }
-                                    }
-                                    queryStr = unescaped;
-                                }
+                                queryStr = unescaped;
                             }
                         }
                     }
