@@ -120,6 +120,42 @@ map<string, vector<CartItem>> cartCache;
 map<string, Order> ordersCache;
 map<string, Webhook> webhooksCache;
 
+string extractJsonString(const string& body, size_t startPos) {
+    size_t pos = startPos;
+    bool escaped = false;
+    while (pos < body.length()) {
+        if (escaped) {
+            escaped = false;
+            pos++;
+            continue;
+        }
+        if (body[pos] == '\\') {
+            escaped = true;
+            pos++;
+            continue;
+        }
+        if (body[pos] == '"') {
+            return body.substr(startPos, pos - startPos);
+        }
+        pos++;
+    }
+    return "";
+}
+
+string extractQueryFromBody(const string& body) {
+    size_t queryPos = body.find("\"query\"");
+    if (queryPos == string::npos) queryPos = body.find("query");
+    if (queryPos == string::npos) return "";
+    
+    size_t colonPos = body.find(":", queryPos);
+    if (colonPos == string::npos) return "";
+    
+    size_t valueStart = body.find("\"", colonPos + 1);
+    if (valueStart == string::npos) return "";
+    
+    return extractJsonString(body, valueStart + 1);
+}
+
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, string* output) {
     size_t totalSize = size * nmemb;
     output->append((char*)contents, totalSize);
@@ -1701,17 +1737,12 @@ int main() {
                 string body = request.substr(bodyStart, bodyEnd - bodyStart + 1);
                 cerr << "[DEBUG] Raw body: " << body << endl;
                 
-                size_t queryPos = body.find("query");
-                if (queryPos != string::npos) {
-                    size_t colonPos = body.find(":", queryPos);
-                    if (colonPos != string::npos && colonPos < bodyEnd) {
-                        size_t firstQuote = body.find("\"", colonPos);
-                        if (firstQuote != string::npos && firstQuote < bodyEnd) {
-                            size_t secondQuote = body.find("\"", firstQuote + 1);
-                            if (secondQuote != string::npos && secondQuote < bodyEnd) {
-                                queryStr = body.substr(firstQuote + 1, secondQuote - firstQuote - 1);
-                            }
-                        }
+                queryStr = extractQueryFromBody(body);
+                if (queryStr.empty()) {
+                    size_t firstBrace = body.find("{");
+                    size_t lastBrace = body.rfind("}");
+                    if (firstBrace != string::npos && lastBrace != string::npos && lastBrace > firstBrace) {
+                        queryStr = body.substr(firstBrace, lastBrace - firstBrace + 1);
                     }
                 }
             }
