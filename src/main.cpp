@@ -120,6 +120,12 @@ map<string, vector<CartItem>> cartCache;
 map<string, Order> ordersCache;
 map<string, Webhook> webhooksCache;
 
+bool usersLoaded = false;
+bool booksLoaded = false;
+bool cachesLoading = false;
+
+void loadAllCaches();
+
 string extractJsonString(const string& body, size_t startPos) {
     size_t pos = startPos;
     bool escaped = false;
@@ -237,19 +243,19 @@ User verifyJWT(const string& token) {
     return user;
 }
 
+map<string, PGresult*> preparedStatements;
+
 bool connectDatabase() {
     string connStr = DB_CONN;
-    if (connStr.find("://") != string::npos) {
-        cerr << "[DB] Using URL connection string: " << connStr << endl;
-    } else {
-        cerr << "[DB] Using keyword connection string: " << connStr << endl;
-    }
+    cerr << "[DB] Connecting..." << endl;
 
     dbConn = PQconnectdb(connStr.c_str());
     if (PQstatus(dbConn) != CONNECTION_OK) {
-        cerr << "[DB] Database connection FAILED: " << PQerrorMessage(dbConn) << endl;
+        cerr << "[DB] Connection FAILED: " << PQerrorMessage(dbConn) << endl;
         return false;
     }
+
+    cerr << "[DB] Connected successfully" << endl;
     return true;
 }
 
@@ -259,11 +265,26 @@ bool checkDatabaseConnection() {
     }
     ConnStatusType status = PQstatus(dbConn);
     if (status != CONNECTION_OK) {
+        cerr << "[DB] Connection lost, reconnecting..." << endl;
         PQfinish(dbConn);
         dbConn = nullptr;
         return connectDatabase();
     }
     return true;
+}
+
+PGresult* executePrepared(const char* name, const char* sql, int nParams, const char* const* paramValues) {
+    auto it = preparedStatements.find(name);
+    if (it == preparedStatements.end()) {
+        PGresult* res = PQprepare(dbConn, name, sql, nParams, nullptr);
+        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+            cerr << "[DB] Failed to prepare statement " << name << ": " << PQerrorMessage(dbConn) << endl;
+            PQclear(res);
+            return nullptr;
+        }
+        preparedStatements[name] = res;
+    }
+    return PQexecPrepared(dbConn, name, nParams, paramValues, nullptr, nullptr, 0);
 }
 
 void loadUsersCache() {
@@ -1694,7 +1715,7 @@ int main() {
     cout << "Loaded " << ordersCache.size() << " orders from database" << endl;
     cout << "Loaded " << reviewsCache.size() << " reviews from database" << endl;
     cout << "Loaded " << webhooksCache.size() << " webhooks from database" << endl;
-    
+
     cout << "Port cleanup complete." << endl;
     
     pthread_t keepalive_id;
@@ -1757,8 +1778,16 @@ int main() {
         string request(buffer);
         
         bool isGetRequest = (request.find("GET ") == 0 || request.find("GET /") != string::npos);
+        bool isHealthRequest = (request.find("GET /health") == 7);
         bool isPostRequest = (request.find("POST ") == 0 && request.find("/graphql") != string::npos);
-        
+
+        if (isHealthRequest) {
+            string response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\nOK";
+            send(clientSocket, response.c_str(), response.length(), 0);
+            close(clientSocket);
+            continue;
+        }
+
         if (isGetRequest) {
             string html = generatePlaygroundHTML();
             string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + to_string(html.length()) + "\r\n\r\n";
