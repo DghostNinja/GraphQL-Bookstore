@@ -44,20 +44,7 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          load: true
-          tags: |
-            ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
-            ${{ env.DOCKER_IMAGE }}:latest
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
-          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
-
-      - name: Push Docker image
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -73,23 +60,23 @@ jobs:
         run: |
           echo "=== Docker Build Test ==="
           
-          echo "Starting container..."
-          docker run -d -p 4001:4000 --name test-api ${{ env.DOCKER_IMAGE }}:latest
+          echo "Building and starting services with docker-compose..."
+          docker-compose up -d --build
           
-          echo "Waiting for container to start..."
-          sleep 10
+          echo "Waiting for services to start..."
+          sleep 15
           
           echo "=== Container Status ==="
-          docker ps -a | grep test-api || echo "Container not found"
+          docker-compose ps
           
           echo "=== Container Logs ==="
-          docker logs --tail 50 test-api 2>&1 | head -50 || true
+          docker-compose logs --tail 30 api
           
           echo "=== Running Full Test Suite ==="
           chmod +x test_api.sh
           
           # Test with Docker container
-          API_URL="http://localhost:4001/graphql" ./test_api.sh > /tmp/test_results.txt 2>&1
+          API_URL="http://localhost:4000/graphql" ./test_api.sh > /tmp/test_results.txt 2>&1
           TEST_EXIT_CODE=$?
           
           echo "=== Test Results ==="
@@ -99,8 +86,7 @@ jobs:
           echo "=== Test Exit Code: $TEST_EXIT_CODE ==="
           
           echo "=== Cleanup ==="
-          docker stop test-api 2>/dev/null || true
-          docker rm test-api 2>/dev/null || true
+          docker-compose down 2>/dev/null || true
           
           if [ $TEST_EXIT_CODE -eq 0 ]; then
             echo ""
