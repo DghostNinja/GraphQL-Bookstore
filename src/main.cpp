@@ -143,17 +143,34 @@ string extractJsonString(const string& body, size_t startPos) {
 }
 
 string extractQueryFromBody(const string& body) {
+    cerr << "[DEBUG] extractQueryFromBody - body length: " << body.length() << endl;
+    cerr << "[DEBUG] extractQueryFromBody - body: " << body << endl;
+
     size_t queryPos = body.find("\"query\"");
     if (queryPos == string::npos) queryPos = body.find("query");
-    if (queryPos == string::npos) return "";
-    
+    if (queryPos == string::npos) {
+        cerr << "[DEBUG] extractQueryFromBody - query key not found" << endl;
+        return "";
+    }
+    cerr << "[DEBUG] extractQueryFromBody - queryPos: " << queryPos << endl;
+
     size_t colonPos = body.find(":", queryPos);
-    if (colonPos == string::npos) return "";
-    
+    if (colonPos == string::npos) {
+        cerr << "[DEBUG] extractQueryFromBody - colon not found" << endl;
+        return "";
+    }
+    cerr << "[DEBUG] extractQueryFromBody - colonPos: " << colonPos << endl;
+
     size_t valueStart = body.find("\"", colonPos + 1);
-    if (valueStart == string::npos) return "";
-    
-    return extractJsonString(body, valueStart + 1);
+    if (valueStart == string::npos) {
+        cerr << "[DEBUG] extractQueryFromBody - opening quote not found" << endl;
+        return "";
+    }
+    cerr << "[DEBUG] extractQueryFromBody - valueStart: " << valueStart << endl;
+
+    string result = extractJsonString(body, valueStart + 1);
+    cerr << "[DEBUG] extractQueryFromBody - result: " << result << endl;
+    return result;
 }
 
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, string* output) {
@@ -1809,20 +1826,39 @@ int main() {
             // Find the actual body by looking for header/body separator first
             size_t headerEnd = request.find("\r\n\r\n");
             if (headerEnd == string::npos) headerEnd = request.find("\n\n");
-            
+            cerr << "[DEBUG] headerEnd: " << (headerEnd == string::npos ? "not found" : to_string(headerEnd)) << endl;
+            cerr << "[DEBUG] request length: " << request.length() << endl;
+
             string queryStr = "";
             if (headerEnd != string::npos) {
                 // Find { after the header/body separator
                 size_t bodyStart = request.find("{", headerEnd);
+                cerr << "[DEBUG] bodyStart: " << (bodyStart == string::npos ? "not found" : to_string(bodyStart)) << endl;
                 if (bodyStart != string::npos) {
                     size_t bodyEnd = request.rfind("}");
+                    cerr << "[DEBUG] bodyEnd: " << (bodyEnd == string::npos ? "not found" : to_string(bodyEnd)) << endl;
                     if (bodyEnd != string::npos && bodyEnd > bodyStart) {
                         string body = request.substr(bodyStart, bodyEnd - bodyStart + 1);
                         cerr << "[DEBUG] Raw body: " << body << endl;
                         queryStr = extractQueryFromBody(body);
                         if (queryStr.empty()) {
+                            cerr << "[DEBUG] Query was empty, using raw body" << endl;
                             queryStr = body;
                         }
+                    }
+                }
+            } else {
+                // Try finding { anywhere in request (might be HTTP/2 or other format)
+                cerr << "[DEBUG] No header/body separator found, trying alternate parsing" << endl;
+                size_t bodyStart = request.find("{\"query\"");
+                if (bodyStart == string::npos) bodyStart = request.find("{\"query\":");
+                if (bodyStart == string::npos) bodyStart = request.find("query");
+                if (bodyStart != string::npos) {
+                    size_t bodyEnd = request.rfind("}");
+                    if (bodyEnd != string::npos && bodyEnd > bodyStart) {
+                        string body = request.substr(bodyStart, bodyEnd - bodyStart + 1);
+                        cerr << "[DEBUG] Alt raw body: " << body << endl;
+                        queryStr = extractQueryFromBody(body);
                     }
                 }
             }
