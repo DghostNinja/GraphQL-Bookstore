@@ -1769,7 +1769,7 @@ int main() {
         }
         
         if (isPostRequest) {
-            cerr << "[REQUEST] POST /graphql received" << endl;
+            cerr << "[REQUEST] POST /graphql received, buffer size: " << bytesReceived << endl;
 
             string authHeaderStr = "";
             size_t authPos = request.find("Authorization:");
@@ -1790,8 +1790,10 @@ int main() {
 
             size_t headerEnd = request.find("\r\n\r\n");
             if (headerEnd == string::npos) headerEnd = request.find("\n\n");
+            cerr << "[REQUEST] headerEnd: " << (headerEnd == string::npos ? "not found" : to_string(headerEnd)) << endl;
 
             string queryStr = "";
+
             if (headerEnd != string::npos) {
                 size_t bodyStart = request.find("{", headerEnd);
                 if (bodyStart != string::npos) {
@@ -1804,6 +1806,16 @@ int main() {
                         if (queryStr.empty()) {
                             queryStr = body;
                         }
+                    }
+                }
+            } else {
+                size_t bodyStart = request.find("{\"query\"");
+                if (bodyStart != string::npos) {
+                    size_t bodyEnd = request.rfind("}");
+                    if (bodyEnd != string::npos && bodyEnd > bodyStart) {
+                        string body = request.substr(bodyStart, bodyEnd - bodyStart + 1);
+                        cerr << "[REQUEST] Alt body: " << body << endl;
+                        queryStr = extractQueryFromBody(body);
                     }
                 }
             }
