@@ -665,6 +665,10 @@ string handleQuery(const string& query, const User& currentUser) {
     response << "{\"data\":{";
     bool firstField = true;
 
+    cerr << "[DEBUG] handleQuery - Query length: " << query.length() << endl;
+    cerr << "[DEBUG] handleQuery - Query: " << query << endl;
+    cerr << "[DEBUG] handleQuery - booksCache size: " << booksCache.size() << endl;
+
     // Check database connection before processing
     if (!checkDatabaseConnection()) {
         response << "\"error\":\"Database connection failed\"";
@@ -743,11 +747,15 @@ string handleQuery(const string& query, const User& currentUser) {
         }
     }
 
-    if (query.find("books(") != string::npos || query.find("books {") != string::npos) {
+    bool booksMatch = (query.find("books(") != string::npos || query.find("books {") != string::npos);
+    cerr << "[DEBUG] booksMatch: " << (booksMatch ? "true" : "false") << endl;
+    if (booksMatch) {
+        cerr << "[DEBUG] Books query matched" << endl;
         string searchQuery = extractValue(query, "search");
         string categoryIdStr = extractIntValue(query, "categoryId");
         int categoryId = categoryIdStr.empty() ? 0 : stoi(categoryIdStr);
         vector<Book> books = searchBooks(searchQuery, categoryId);
+        cerr << "[DEBUG] Found " << books.size() << " books" << endl;
         if (!firstField) response << ",";
         response << "\"books\":[";
         for (size_t i = 0; i < books.size(); i++) {
@@ -1821,10 +1829,13 @@ int main() {
             cerr << "[DEBUG] IsMutation: " << (isMutation ? "true" : "false") << endl;
             
             string responseBody = handleRequest(queryStr, currentUser, isMutation);
-            
-            string response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nContent-Type: application/json\r\nContent-Length: " +
-                to_string(responseBody.length()) + "\r\n\r\n" + responseBody;
-            send(clientSocket, response.c_str(), response.length(), 0);
+            cerr << "[DEBUG] Response body length: " << responseBody.length() << endl;
+            cerr << "[DEBUG] Response body: " << responseBody << endl;
+
+            string response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nContent-Type: application/json\r\nContent-Length: " +
+                to_string(responseBody.length()) + "\r\nX-Content-Type-Options: nosniff\r\n\r\n" + responseBody;
+            ssize_t sent = send(clientSocket, response.c_str(), response.length(), 0);
+            cerr << "[DEBUG] Bytes sent: " << sent << " of " << response.length() << endl;
         } else if (request.find("OPTIONS") == 0) {
             string response = "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nContent-Length: 0\r\n\r\n";
             send(clientSocket, response.c_str(), response.length(), 0);

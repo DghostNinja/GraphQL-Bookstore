@@ -70,9 +70,11 @@ echo ""
 #==========================================
 echo "2. Testing User Registration..."
 create_test_file /tmp/test_register.json '{"query":"mutation { register(username: \"testuser\", firstName: \"Test\", lastName: \"User\", password: \"testpass123\") { success message token user { id username } } }"}'
-RESPONSE=$(curl -s -X POST "$API_URL" \
+RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "$API_URL" \
     -H 'Content-Type: application/json' \
     --data-binary @/tmp/test_register.json 2>&1)
+HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
+RESPONSE=$(echo "$RESPONSE" | grep -v "HTTP_CODE:")
 
 if echo "$RESPONSE" | grep -q '"success":true'; then
     echo -e "   ${GREEN}✓${NC} Registration successful"
