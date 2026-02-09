@@ -668,9 +668,11 @@ string handleQuery(const string& query, const User& currentUser) {
     cerr << "[DEBUG] handleQuery - Query length: " << query.length() << endl;
     cerr << "[DEBUG] handleQuery - Query: " << query << endl;
     cerr << "[DEBUG] handleQuery - booksCache size: " << booksCache.size() << endl;
+    cerr << "[DEBUG] handleQuery - dbConn: " << (dbConn ? "valid" : "null") << endl;
 
     // Check database connection before processing
     if (!checkDatabaseConnection()) {
+        cerr << "[DEBUG] Database connection failed" << endl;
         response << "\"error\":\"Database connection failed\"";
         response << "}}";
         return response.str();
@@ -749,6 +751,8 @@ string handleQuery(const string& query, const User& currentUser) {
 
     bool booksMatch = (query.find("books(") != string::npos || query.find("books {") != string::npos);
     cerr << "[DEBUG] booksMatch: " << (booksMatch ? "true" : "false") << endl;
+    cerr << "[DEBUG] query.find(\"books(\"): " << query.find("books(") << endl;
+    cerr << "[DEBUG] query.find(\"books {\"): " << query.find("books {") << endl;
     if (booksMatch) {
         cerr << "[DEBUG] Books query matched" << endl;
         string searchQuery = extractValue(query, "search");
