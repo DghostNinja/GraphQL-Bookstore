@@ -1,7 +1,7 @@
 services:
   - type: web
     name: owasp-bookshop
-    image: ipsalmy/graphql:latest
+    image: anomalyco/graphql:latest
     envVars:
       - key: DATABASE_URL
         fromDatabase:
