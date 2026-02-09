@@ -62,35 +62,35 @@ jobs:
       - name: Test Docker image
         run: |
           echo "=== Docker Build Test ==="
-          
+
           echo "Building and starting services with docker compose..."
           docker compose up -d --build
-          
+
           echo "Waiting for services to start..."
           sleep 15
-          
+
           echo "=== Container Status ==="
           docker compose ps
-          
+
           echo "=== Container Logs ==="
           docker compose logs --tail 30 api
-          
+
           echo "=== Running Full Test Suite ==="
           chmod +x test_api.sh
-          
+
           # Test with Docker container
           API_URL="http://localhost:4000/graphql" ./test_api.sh > /tmp/test_results.txt 2>&1
           TEST_EXIT_CODE=$?
-          
+
           echo "=== Test Results ==="
           cat /tmp/test_results.txt
-          
+
           echo ""
           echo "=== Test Exit Code: $TEST_EXIT_CODE ==="
-          
+
           echo "=== Cleanup ==="
           docker compose down 2>/dev/null || true
-          
+
           if [ $TEST_EXIT_CODE -eq 0 ]; then
             echo ""
             echo "✓ ALL TESTS PASSED - Image is ready for deployment!"
@@ -100,6 +100,22 @@ jobs:
             echo "✗ TESTS FAILED - Review output above"
             exit 1
           fi
+
+      - name: Initialize Neon Database
+        run: |
+          echo "=== Initializing Neon Database ==="
+          if [ -n "$DATABASE_URL" ]; then
+            echo "Installing PostgreSQL client..."
+            apt-get update && apt-get install -y postgresql-client
+
+            echo "Running init scripts..."
+            PGPASSWORD="$DATABASE_URL" psql "$DATABASE_URL" -f scripts/init_database.sql
+            PGPASSWORD="$DATABASE_URL" psql "$DATABASE_URL" -f scripts/seed.sql
+            echo "✓ Database initialized successfully"
+          else
+            echo "DATABASE_URL not set - skipping database initialization"
+          fi
+        if: github.event_name != 'pull_request'
 
       - name: Trigger Render Deploy
         run: |
