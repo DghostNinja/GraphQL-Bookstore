@@ -298,30 +298,45 @@ DB_CONN "dbname=bookstore_db user=bookstore_user password=bookstore_password hos
 ### Testing New Features
 ```bash
 # Test cart with authentication
+cat > /tmp/test_login.json << 'EOF'
+{"query":"mutation { login(username: \"admin\", password: \"password123\") { token } }"}
+EOF
 TOKEN=$(curl -s -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"mutation { login(username: \"user\", password: \"password123\") { token } }"}' \
-  | grep -oP '"token":"[^"]+')
+  -H 'Content-Type: application/json' \
+  --data-binary @/tmp/test_login.json | grep -oP '"token":"[^"]+' | cut -d'"' -f4)
+
+cat > /tmp/test_cart.json << 'EOF'
+{"query":"mutation { addToCart(bookId: 1, quantity: 2) { success message } }"}
+EOF
 curl -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
+  -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"query":"mutation { addToCart(bookId: 1, quantity: 2) { success message } }"}'
+  --data-binary @/tmp/test_cart.json
 
 # Test order creation
+cat > /tmp/test_order.json << 'EOF'
+{"query":"mutation { createOrder { success orderId totalAmount } }"}
+EOF
 curl -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
+  -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"query":"mutation { createOrder { success orderId totalAmount } }"}'
+  --data-binary @/tmp/test_order.json
 
 # Test admin queries (no auth required!)
+cat > /tmp/test_admin.json << 'EOF'
+{"query":"query { _adminStats { userCount bookCount totalRevenue } }"}
+EOF
 curl -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"query { _adminStats { userCount bookCount totalRevenue } }"}'
+  -H 'Content-Type: application/json' \
+  --data-binary @/tmp/test_admin.json
 
 # Test SQL injection
+cat > /tmp/test_sql.json << 'EOF'
+{"query":"query { _searchAdvanced(query: \"1 OR 1=1\") { id title } }"}
+EOF
 curl -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"query { _searchAdvanced(query: \"1 OR 1=1\") { id title } }"}'
+  -H 'Content-Type: application/json' \
+  --data-binary @/tmp/test_sql.json
 ```
 
 ### SSRF URL Whitelist
