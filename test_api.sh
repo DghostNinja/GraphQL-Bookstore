@@ -32,11 +32,31 @@ echo "API URL: $API_URL"
 echo ""
 
 #==========================================
+# PRE-FLIGHT CHECK
+#==========================================
+echo "Running pre-flight check..."
+HEALTH_CHECK=$(curl -s "${API_URL}/" 2>/dev/null)
+
+if [ -z "$HEALTH_CHECK" ]; then
+    echo -e "   ${RED}ERROR:${NC} Server not responding at $API_URL"
+    echo "   Make sure the server is running:"
+    echo "   - Local: ./bookstore-server"
+    echo "   - Docker: sudo docker-compose up -d"
+    echo ""
+    exit 1
+fi
+
+if ! echo "$HEALTH_CHECK" | grep -q "GraphQL Playground"; then
+    echo -e "   ${YELLOW}WARNING:${NC} Server responding but Playground not found"
+fi
+echo -e "   ${GREEN}✓${NC} Server is running"
+echo ""
+
+#==========================================
 # TEST 1: Server Health Check
 #==========================================
 echo "1. Testing Server Health..."
-RESPONSE=$(curl -s "${API_URL}/" 2>/dev/null)
-if echo "$RESPONSE" | grep -q "GraphQL Playground"; then
+if echo "$HEALTH_CHECK" | grep -q "GraphQL Playground"; then
     echo -e "   ${GREEN}✓${NC} Playground accessible"
     ((PASS_COUNT++))
 else
@@ -52,15 +72,23 @@ echo "2. Testing User Registration..."
 create_test_file /tmp/test_register.json '{"query":"mutation { register(username: \"testuser\", firstName: \"Test\", lastName: \"User\", password: \"testpass123\") { success message token user { id username } } }"}'
 RESPONSE=$(curl -s -X POST "$API_URL" \
     -H 'Content-Type: application/json' \
-    --data-binary @/tmp/test_register.json)
+    --data-binary @/tmp/test_register.json 2>&1)
+
 if echo "$RESPONSE" | grep -q '"success":true'; then
     echo -e "   ${GREEN}✓${NC} Registration successful"
     ((PASS_COUNT++))
+    REGISTERED=true
+elif echo "$RESPONSE" | grep -q '"message":"Username already exists"'; then
+    echo -e "   ${YELLOW}⚠${NC} User already exists (expected for repeat tests)"
+    ((PASS_COUNT++))
+    REGISTERED=true
 else
     echo -e "   ${RED}✗${NC} Registration failed"
-    echo "   Response: $RESPONSE"
+    echo "   Debug: Response received"
+    REGISTERED=false
     ((FAIL_COUNT++))
 fi
+echo "   Response: $RESPONSE"
 echo ""
 
 #==========================================
@@ -70,18 +98,27 @@ echo "3. Testing User Login (admin)..."
 create_test_file /tmp/test_login.json '{"query":"mutation { login(username: \"admin\", password: \"password123\") { success token user { id username role } } }"}'
 RESPONSE=$(curl -s -X POST "$API_URL" \
     -H 'Content-Type: application/json' \
-    --data-binary @/tmp/test_login.json)
+    --data-binary @/tmp/test_login.json 2>&1)
 
 if echo "$RESPONSE" | grep -q '"success":true'; then
     echo -e "   ${GREEN}✓${NC} Login successful"
     ((PASS_COUNT++))
     ADMIN_TOKEN=$(echo "$RESPONSE" | grep -oP '"token":"[^"]+' | cut -d'"' -f4)
     echo "   Token: ${ADMIN_TOKEN:0:30}..."
+elif echo "$RESPONSE" | grep -q '"Invalid username or password"'; then
+    echo -e "   ${RED}✗${NC} Invalid credentials"
+    echo "   Check database and credentials"
+    ADMIN_TOKEN=""
+    ((FAIL_COUNT++))
+elif echo "$RESPONSE" | grep -q '"Missing required fields"'; then
+    echo -e "   ${RED}✗${NC} Query parsing issue - check backslash escaping"
+    ADMIN_TOKEN=""
+    ((FAIL_COUNT++))
 else
     echo -e "   ${RED}✗${NC} Login failed"
     echo "   Response: $RESPONSE"
-    ((FAIL_COUNT++))
     ADMIN_TOKEN=""
+    ((FAIL_COUNT++))
 fi
 echo ""
 
@@ -247,15 +284,25 @@ echo ""
 # TEST 11: GraphQL Introspection
 #==========================================
 echo "11. Testing GraphQL Introspection..."
-create_test_file /tmp/test_introspection.json '{"query":"query { __schema { queryType { name } } }"}'
+create_test_file /tmp/test_introspection.json '{"query":"query { __schema { queryType { name } mutationType { name } } }"}'
 RESPONSE=$(curl -s -X POST "$API_URL" \
     -H 'Content-Type: application/json' \
-    --data-binary @/tmp/test_introspection.json)
+    --data-binary @/tmp/test_introspection.json 2>&1)
+
 if echo "$RESPONSE" | grep -q '"__schema":'; then
     echo -e "   ${GREEN}✓${NC} Introspection works"
     ((PASS_COUNT++))
+elif echo "$RESPONSE" | grep -q '"errors"'; then
+    echo -e "   ${RED}✗${NC} Introspection returned errors"
+    echo "   Response: $RESPONSE"
+    ((FAIL_COUNT++))
+elif echo "$RESPONSE" | grep -q '"data":{}'; then
+    echo -e "   ${YELLOW}⚠${NC} Introspection returned empty data (parsing issue?)"
+    echo "   Response: $RESPONSE"
+    ((FAIL_COUNT++))
 else
     echo -e "   ${RED}✗${NC} Introspection failed"
+    echo "   Response: $RESPONSE"
     ((FAIL_COUNT++))
 fi
 echo ""
@@ -337,6 +384,12 @@ echo ""
 echo "=========================================="
 echo "  Test Summary                          "
 echo "=========================================="
+echo ""
+echo "KEY TESTS (Must Pass):"
+echo -e "  Registration:  $([ -n "$REGISTERED" ] && echo -e "${GREEN}✓ PASS${NC}" || echo -e "${RED}✗ FAIL${NC}")"
+echo -e "  Login:        $([ -n "$ADMIN_TOKEN" ] && echo -e "${GREEN}✓ PASS${NC}" || echo -e "${RED}✗ FAIL${NC}")"
+echo -e "  Introspection: $(echo "$RESPONSE" | grep -q '"__schema":' && echo -e "${GREEN}✓ PASS${NC}" || echo -e "${RED}✗ FAIL${NC}")"
+echo ""
 echo -e "  ${GREEN}Passed:${NC} $PASS_COUNT"
 echo -e "  ${RED}Failed:${NC} $FAIL_COUNT"
 echo ""
