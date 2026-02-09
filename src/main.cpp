@@ -1017,6 +1017,8 @@ string handleMutation(const string& query, User& currentUser) {
         string firstName = extractValue(query, "firstName");
         string lastName = extractValue(query, "lastName");
 
+        cerr << "[REGISTER] username='" << username << "', firstName='" << firstName << "', lastName='" << lastName << "'" << endl;
+
         if (!username.empty() && !password.empty() && !firstName.empty() && !lastName.empty()) {
             if (!getUserByUsername(username)) {
                 string sql = "INSERT INTO users (username, password_hash, first_name, last_name, role) VALUES ($1, $2, $3, $4, 'user') RETURNING id";
@@ -1767,6 +1769,8 @@ int main() {
         }
         
         if (isPostRequest) {
+            cerr << "[REQUEST] POST /graphql received" << endl;
+
             string authHeaderStr = "";
             size_t authPos = request.find("Authorization:");
             if (authPos == string::npos) authPos = request.find("authorization:");
@@ -1784,13 +1788,6 @@ int main() {
 
             User currentUser = extractAuthUser(authHeaderStr);
 
-            FILE* debugFile = fopen("/tmp/auth_debug.txt", "a");
-            if (debugFile) {
-                fprintf(debugFile, "Auth header: [%s]\n", authHeaderStr.c_str());
-                fprintf(debugFile, "Current user id: [%s]\n", currentUser.id.c_str());
-                fclose(debugFile);
-            }
-            
             size_t headerEnd = request.find("\r\n\r\n");
             if (headerEnd == string::npos) headerEnd = request.find("\n\n");
 
@@ -1801,7 +1798,9 @@ int main() {
                     size_t bodyEnd = request.rfind("}");
                     if (bodyEnd != string::npos && bodyEnd > bodyStart) {
                         string body = request.substr(bodyStart, bodyEnd - bodyStart + 1);
+                        cerr << "[REQUEST] Body: " << body << endl;
                         queryStr = extractQueryFromBody(body);
+                        cerr << "[REQUEST] Query: " << queryStr << endl;
                         if (queryStr.empty()) {
                             queryStr = body;
                         }
@@ -1810,8 +1809,10 @@ int main() {
             }
 
             bool isMutation = (queryStr.find("mutation {") != string::npos || queryStr.find("mutation(") != string::npos);
+            cerr << "[REQUEST] isMutation: " << (isMutation ? "true" : "false") << endl;
 
             string responseBody = handleRequest(queryStr, currentUser, isMutation);
+            cerr << "[REQUEST] Response: " << responseBody << endl;
 
             string response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nContent-Type: application/json\r\nContent-Length: " +
                 to_string(responseBody.length()) + "\r\nX-Content-Type-Options: nosniff\r\n\r\n" + responseBody;
