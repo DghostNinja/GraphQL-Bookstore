@@ -18,16 +18,11 @@ WORKDIR /app
 # Copy source files
 COPY src/main.cpp src/main.cpp
 
-# Copy init script
-COPY scripts/init_database.sql scripts/init_database.sql
-COPY scripts/init-db.sh scripts/init-db.sh
-RUN chmod +x scripts/init-db.sh
-
 # Compile the server
 RUN g++ -std=c++17 -pthread -o bookstore-server src/main.cpp -lpq -ljwt -lcurl -lssl -lcrypto
 
 # Expose port
 EXPOSE 4000
 
-# Run initialization then start server
-CMD /app/scripts/init-db.sh && ./bookstore-server
+# Run server
+CMD ./bookstore-server

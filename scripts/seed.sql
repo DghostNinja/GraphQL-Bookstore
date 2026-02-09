@@ -19,17 +19,6 @@ DELETE FROM authors;
 DELETE FROM system_config;
 DELETE FROM users;
 
--- Reset sequences
-ALTER SEQUENCE users_id_seq RESTART WITH 1;
-ALTER SEQUENCE categories_id_seq RESTART WITH 1;
-ALTER SEQUENCE authors_id_seq RESTART WITH 1;
-ALTER SEQUENCE books_id_seq RESTART WITH 1;
-ALTER SEQUENCE reviews_id_seq RESTART WITH 1;
-ALTER SEQUENCE coupons_id_seq RESTART WITH 1;
-ALTER SEQUENCE audit_logs_id_seq RESTART WITH 1;
-ALTER SEQUENCE payment_transactions_id_seq RESTART WITH 1;
-ALTER SEQUENCE search_logs_id_seq RESTART WITH 1;
-
 -- Insert default users (plaintext passwords for educational server)
 INSERT INTO users (username, password_hash, first_name, last_name, role) VALUES
 ('admin', 'password123', 'Admin', 'User', 'admin'),
