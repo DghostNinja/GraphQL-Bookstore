@@ -238,7 +238,28 @@ User verifyJWT(const string& token) {
 }
 
 bool connectDatabase() {
-    dbConn = PQconnectdb(DB_CONN);
+    string connStr = DB_CONN;
+    if (connStr.find("://") != string::npos) {
+        size_t protocolEnd = connStr.find("://");
+        string protocol = connStr.substr(0, protocolEnd);
+        string rest = connStr.substr(protocolEnd + 3);
+
+        size_t atPos = rest.find("@");
+        string creds = rest.substr(0, atPos);
+        string hostDb = rest.substr(atPos + 1);
+
+        size_t colonPos = creds.find(":");
+        string user = creds.substr(0, colonPos);
+        string password = creds.substr(colonPos + 1);
+
+        size_t slashPos = hostDb.find("/");
+        string host = hostDb.substr(0, slashPos);
+        string dbname = hostDb.substr(slashPos + 1);
+
+        connStr = "host=" + host + " user=" + user + " password=" + password + " dbname=" + dbname + " sslmode=require";
+    }
+
+    dbConn = PQconnectdb(connStr.c_str());
     if (PQstatus(dbConn) != CONNECTION_OK) {
         cerr << "[DB] Database connection FAILED: " << PQerrorMessage(dbConn) << endl;
         return false;
