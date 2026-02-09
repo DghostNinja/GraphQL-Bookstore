@@ -594,22 +594,32 @@ string webhookToJson(const Webhook& webhook) {
 }
 
 string extractValue(const string& query, const string& key) {
-    string pattern = key + "\\s*:\\s*\\\\?\"((?:[^\"\\\\]|\\\\.)*)\\\\?\"";
-    regex re(pattern);
-    smatch match;
-    if (regex_search(query, match, re) && match.size() > 1) {
-        string result = match[1].str();
-        string unescaped;
-        for (size_t i = 0; i < result.length(); i++) {
-            if (result[i] == '\\' && i + 1 < result.length()) {
-                if (result[i + 1] == '"') { unescaped += '"'; i++; }
-                else if (result[i + 1] == 'n') { unescaped += '\n'; i++; }
-                else if (result[i + 1] == 't') { unescaped += '\t'; i++; }
-                else if (result[i + 1] == '\\') { unescaped += '\\'; i++; }
-                else { unescaped += result[i]; }
-            } else { unescaped += result[i]; }
+    string searchKey = key + ":";
+    size_t keyPos = query.find(searchKey);
+    if (keyPos == string::npos) return "";
+    
+    size_t valueStart = query.find("\"", keyPos + searchKey.length());
+    if (valueStart == string::npos) return "";
+    
+    valueStart++; // move past opening quote
+    
+    string value;
+    bool escaped = false;
+    for (size_t i = valueStart; i < query.length(); i++) {
+        char c = query[i];
+        if (escaped) {
+            if (c == 'n') value += '\n';
+            else if (c == 't') value += '\t';
+            else if (c == '\\') value += '\\';
+            else value += c;
+            escaped = false;
+        } else if (c == '\\') {
+            escaped = true;
+        } else if (c == '"') {
+            return value;
+        } else {
+            value += c;
         }
-        return unescaped;
     }
     return "";
 }
