@@ -35,21 +35,39 @@ sudo -u postgres psql -f scripts/init_database.sql
 # Run full test suite (requires server running)
 ./test_api.sh
 
-# Test single feature - Replace with specific curl command
-# Example: Test registration
+# Create test file to avoid bash escaping issues
+cat > /tmp/test_login.json << 'EOF'
+{"query":"mutation { login(username: \"admin\", password: \"password123\") { success token } }"}
+EOF
+
+# Test login using file input (recommended - avoids bash escaping)
 curl -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"mutation { register(username: \"test\", firstName: \"Test\", lastName: \"User\", password: \"pass\") { success } }"}'
+  -H 'Content-Type: application/json' \
+  --data-binary @/tmp/test_login.json
+
+# Test registration
+cat > /tmp/test_register.json << 'EOF'
+{"query":"mutation { register(username: \"testuser\", firstName: \"Test\", lastName: \"User\", password: \"testpass123\") { success } }"}
+EOF
+curl -X POST http://localhost:4000/graphql \
+  -H 'Content-Type: application/json' \
+  --data-binary @/tmp/test_register.json
 
 # Test SSRF
+cat > /tmp/test_ssrf.json << 'EOF'
+{"query":"query { _fetchExternalResource(url: \"http://example.com\") }"}
+EOF
 curl -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"query { _fetchExternalResource(url: \"http://example.com\") }"}'
+  -H 'Content-Type: application/json' \
+  --data-binary @/tmp/test_ssrf.json
 
 # Test BOLA (user enumeration - no auth required!)
+cat > /tmp/test_bola.json << 'EOF'
+{"query":"query { _internalUserSearch(username: \"\") { username passwordHash } }"}
+EOF
 curl -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"query { _internalUserSearch(username: \"\") { username passwordHash } }"}'
+  -H 'Content-Type: application/json' \
+  --data-binary @/tmp/test_bola.json
 ```
 
 ### Clean Up
@@ -319,3 +337,111 @@ Allowed prefixes for `_fetchExternalResource`:
 - Shows query parsing, SQL execution status, and responses
 - Useful for tracking flow and identifying issues
 - Example: `cerr << "[DEBUG] Processing request - isMutation: " << (isMutation ? "true" : "false") << endl;`
+
+---
+
+## CRITICAL: GraphQL Query Parsing Guidelines
+
+### The Backslash-Escaped Quote Problem
+
+When bash receives curl commands with `\"` inside single-quoted JSON, bash adds additional backslashes. For example:
+
+```bash
+# What you TYPE:
+-d '{"query":"mutation { login(username: \"admin\", password: \"password123\") { success } }"}'
+
+# What the SERVER receives:
+{"query":"mutation { login(username: \\"admin\\", password: \\"password123\\") { success } }"}
+```
+
+The `\"` becomes `\\"` - the backslash is LITERAL in the string.
+
+### Correct extractValue() Implementation
+
+This is the CORRECT implementation that handles escaped quotes:
+
+```cpp
+string extractValue(const string& query, const string& key) {
+    string searchKey = key + ":";
+    size_t keyPos = query.find(searchKey);
+    if (keyPos == string::npos) return "";
+    
+    size_t searchStart = keyPos + searchKey.length();
+    
+    // Skip whitespace
+    while (searchStart < query.length() && 
+           (query[searchStart] == ' ' || query[searchStart] == '\t')) {
+        searchStart++;
+    }
+    
+    if (searchStart >= query.length()) return "";
+    
+    // Skip opening quote (may be escaped with backslash like \")
+    if (query[searchStart] == '"') {
+        searchStart++;
+    } else if (query[searchStart] == '\\' && 
+               searchStart + 1 < query.length() && 
+               query[searchStart + 1] == '"') {
+        // Skip escaped quote: \"
+        searchStart += 2;
+    }
+    
+    string value;
+    bool escaped = false;
+    
+    for (size_t i = searchStart; i < query.length(); i++) {
+        char c = query[i];
+        
+        if (escaped) {
+            // If we're escaped and see a quote, it's an escaped quote - skip it
+            if (c != '"') {
+                value += c;
+            }
+            escaped = false;
+        } else if (c == '\\') {
+            escaped = true;
+        } else if (c == '"') {
+            // End of string
+            return value;
+        } else if (c == ' ' || c == ',' || c == ')' || c == '{' || c == '}') {
+            // End of value (unquoted)
+            return value;
+        } else {
+            value += c;
+        }
+    }
+    
+    return value;
+}
+```
+
+### Key Points:
+1. Check for both `"` (unescaped) AND `\"` (escaped) as opening quotes
+2. When `escaped=true`, a `"` means an escaped quote - skip it, don't add to value
+3. Only return when you hit an UNESCAPED closing quote
+4. Handle whitespace, commas, parentheses, and braces as value delimiters
+
+### Testing Query Parsing
+
+ALWAYS test with debug logging enabled:
+
+```cpp
+cerr << "[DEBUG] Raw body: " << body << endl;
+cerr << "[DEBUG] Extracted query: " << queryStr << endl;
+cerr << "[DEBUG] username='" << username << "', password='" << password << "'" << endl;
+```
+
+If you see `username='"admin"'` (with quotes included), the parsing is broken.
+
+### Never Use Regex for This
+
+Regex is fragile with escaped strings. Use the simple character-by-character parsing shown above.
+
+### If You Break This Again...
+
+Symptoms to watch for:
+- `{"data":{"login":{"success":false,"message":"Missing required fields: username, password"}}}`
+- Logs show `username='"admin"'` or `username=''`
+- Server receives `\\"` in the raw body
+
+Fix: Use the extractValue() implementation above.
