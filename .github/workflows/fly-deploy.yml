@@ -22,29 +22,30 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Flyctl
-        uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Build and deploy
         run: |
-          echo "=== Deploying to Fly.io ==="
+          curl -L https://fly.io/install.sh | sh
+          echo "$HOME/.fly/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.fly/bin:$PATH"
+          flyctl version
 
-          # Deploy the app (creates if not exists)
-          fly deploy --remote-only
+      - name: Set up Fly.io
+        run: |
+          export PATH="$HOME/.fly/bin:$PATH"
 
-          echo "=== Deployment initiated ==="
+          # Create app if it doesn't exist
+          fly apps list | grep owasp-bookshop || fly launch --name owasp-bookshop --no-deploy --region iad --copy-config
+
+      - name: Deploy to Fly.io
+        run: |
+          export PATH="$HOME/.fly/bin:$PATH"
+          fly deploy
 
       - name: Initialize Neon Database
         run: |
-          echo "=== Initializing Neon Database ==="
           if [ -n "$DATABASE_URL" ]; then
-            echo "Installing PostgreSQL client..."
             apt-get update && apt-get install -y postgresql-client
-
-            echo "Running init scripts on Neon..."
             psql "$DATABASE_URL" -f scripts/init_database.sql
             psql "$DATABASE_URL" -f scripts/seed.sql
             echo "✓ Neon database initialized"
-          else
-            echo "DATABASE_URL not set"
           fi
         if: github.event_name != 'pull_request'
