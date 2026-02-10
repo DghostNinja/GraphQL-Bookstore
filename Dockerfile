@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     libssl3 \
     libcurl4 \
+    libjwt-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
