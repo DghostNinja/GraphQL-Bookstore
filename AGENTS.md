@@ -79,9 +79,6 @@ The test script checks:
 - `0` = All tests passed
 - `1` = Some tests failed
 
-### GitHub Actions
-The workflow (`.github/workflows/docker-build.yml`) runs the full test suite against the Docker container before pushing to Docker Hub and triggering Render deployment.
-
 ### Clean Up
 ```bash
 # Kill server on port 4000
@@ -111,28 +108,27 @@ The following environment variables can be set to configure the server:
 - `PORT` - Server port (default: 4000)
 - `JWT_SECRET` - JWT signing secret (default: hardcoded weak secret)
 - `DB_CONNECTION_STRING` - PostgreSQL connection string
+- `DATABASE_URL` - PostgreSQL connection URL (preferred)
 
 Example:
 ```bash
 export PORT=4000
 export JWT_SECRET="your-secret-here"
-export DB_CONNECTION_STRING="dbname=bookstore_db user=bookstore_user password=bookstore_password host=localhost port=5432"
+export DATABASE_URL="postgresql://user:pass@host:5432/dbname?sslmode=require"
 ./bookstore-server
 ```
 
 ### GitHub Actions
-The repository includes a GitHub Actions workflow (`.github/workflows/docker-build.yml`) that:
-- Builds the Docker image on push to main/master branches
-- Builds and tags releases on version tags
-- Pushes to Docker Hub (requires `DOCKER_USERNAME` and `DOCKER_PASSWORD` secrets)
+The workflow (`.github/workflows/fly-deploy.yml`) runs:
+1. Build Docker image
+2. Test with Docker Compose (local PostgreSQL)
+3. Push to Docker Hub
+4. Deploy to Fly.io
 
 Required GitHub Secrets:
 - `DOCKER_USERNAME` - Docker Hub username
 - `DOCKER_PASSWORD` - Docker Hub password/access token
-
-Push to Docker Hub happens automatically on:
-- Push to `main` or `master` branch
-- New version tags (e.g., `v1.0.0`)
+- `FLY_API_TOKEN` - Fly.io API token (get with `flyctl auth token`)
 
 ## Code Style Guidelines
 
@@ -215,12 +211,14 @@ PQclear(res);
 
 ### Project Structure
 ```
-src/main.cpp           # Main server (~1700 lines)
+src/main.cpp           # Main server
 scripts/init_database.sql  # Database schema and seed data
 build.sh              # Build script
 test_api.sh           # Integration tests
 docker-compose.yml     # Docker deployment
 Dockerfile            # Container image
+fly.toml              # Fly.io config
+deploy-fly.sh         # Fly.io deployment script
 ```
 
 ### Vulnerability Implementation Notes
@@ -359,12 +357,6 @@ Allowed prefixes for `_fetchExternalResource`:
 - `http://169.254.169.254` (cloud metadata)
 - `http://localhost:`, `http://127.0.0.1:`
 
-### Debug Output
-- Debug logging enabled: `cerr << "[DEBUG] message"`
-- Shows query parsing, SQL execution status, and responses
-- Useful for tracking flow and identifying issues
-- Example: `cerr << "[DEBUG] Processing request - isMutation: " << (isMutation ? "true" : "false") << endl;`
-
 ---
 
 ## CRITICAL: GraphQL Query Parsing Guidelines
@@ -482,6 +474,8 @@ Fix: Use the extractValue() implementation above.
 - Better performance for low-traffic apps
 - Generous free tier
 - Docker-based deployments
+- Automatic HTTPS
+- Edge caching
 
 ### Initial Setup
 
@@ -515,8 +509,14 @@ fly open
 
 ### Environment Variables
 Set these in Fly.io dashboard or via CLI:
-- `DATABASE_URL`: Neon PostgreSQL connection string
+- `DATABASE_URL`: Neon PostgreSQL connection string (postgresql://...)
 - `JWT_SECRET`: JWT signing secret
+
+Example:
+```bash
+fly secrets set DATABASE_URL="postgresql://user:pass@host.neon.tech/dbname?sslmode=require"
+fly secrets set JWT_SECRET="your-jwt-secret"
+```
 
 ### Scale Down (Free Tier)
 ```bash
@@ -538,4 +538,16 @@ fly machine restart <machine-id>
 # Check connection to database
 fly ssh console
 psql "$DATABASE_URL" -c "SELECT 1"
+
+# View recent logs
+fly logs
+
+# Redeploy after config changes
+fly deploy
 ```
+
+### URLs After Deployment
+- **App**: https://owasp-bookshop.fly.dev
+- **GraphQL Playground**: https://owasp-bookshop.fly.dev/
+- **GraphQL Endpoint**: https://owasp-bookshop.fly.dev/graphql
+- **Health Check**: https://owasp-bookshop.fly.dev/health
