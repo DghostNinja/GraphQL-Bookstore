@@ -2,9 +2,10 @@ FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y \
     g++ \
+    make \
     libpq-dev \
-    libssl3 \
-    libcurl4 \
+    libssl-dev \
+    libcurl4-openssl-dev \
     libjwt-dev \
     && rm -rf /var/lib/apt/lists/*
 
