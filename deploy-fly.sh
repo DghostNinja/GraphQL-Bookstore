@@ -18,7 +18,7 @@ fi
 
 # Launch app (creates if not exists)
 echo "Launching app..."
-fly launch --no-deploy --name owasp-bookshop
+fly launch --no-deploy --name graphql-bookstore
 
 # Set secrets
 echo "Setting secrets..."
@@ -35,4 +35,4 @@ fly deploy
 
 echo ""
 echo "=== Deployment Complete ==="
-echo "App URL: https://owasp-bookshop.fly.dev"
+echo "App URL: https://graphql-bookstore.fly.dev"

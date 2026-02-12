@@ -304,6 +304,45 @@ DB_CONN "dbname=bookstore_db user=bookstore_user password=bookstore_password hos
 - **Webhook System**: Register webhooks with SSRF via testWebhook
 - **Admin Queries**: Stats, orders, and payments accessible without auth
 - **SQL Injection**: `_searchAdvanced` query with direct SQL concatenation
+- **Rate Limiting**: IP-based rate limiting (100 requests/minute, 5-min block)
+- **API Documentation Page**: Beautiful glass-morphism landing page with query runner
+
+### Rate Limiting
+The server includes built-in rate limiting to prevent abuse:
+- **100 requests per 60 seconds** per IP address
+- **5-minute block** when limit exceeded
+- **Automatic cleanup** of old entries every 60 seconds
+
+Rate limit configuration constants in `src/main.cpp`:
+```cpp
+#define RATE_LIMIT_WINDOW_SECONDS 60
+#define RATE_LIMIT_MAX_REQUESTS 100
+#define RATE_LIMIT_BLOCK_DURATION 300
+```
+
+### API Documentation Page
+The landing page (`generateLandingHTML()` in `src/main.cpp`) provides:
+- Glass-morphism UI design with animated backgrounds
+- Query Runner panel for testing GraphQL queries
+- Login and Registration panels with JWT token storage
+- Quick examples and available endpoints grid
+- Click-to-load endpoint examples
+
+**Query Runner Features:**
+- Textarea for entering GraphQL queries
+- "Load Sample" button loads books query example
+- "Run Query" button executes query via XMLHttpRequest
+- Response displayed with JSON formatting
+- Optional username/password for authenticated requests
+
+**Authentication Panel Features:**
+- Separate Login and Register panels
+- JWT tokens stored in localStorage
+- Tokens automatically used for authenticated requests
+
+### Fly.io Deployment
+App name: `graphql-bookstore`
+URL: https://graphql-bookstore.fly.dev
 
 ### Testing New Features
 ```bash
@@ -547,7 +586,7 @@ fly deploy
 ```
 
 ### URLs After Deployment
-- **App**: https://owasp-bookshop.fly.dev
-- **GraphQL Playground**: https://owasp-bookshop.fly.dev/
-- **GraphQL Endpoint**: https://owasp-bookshop.fly.dev/graphql
-- **Health Check**: https://owasp-bookshop.fly.dev/health
+- **App**: https://graphql-bookstore.fly.dev
+- **GraphQL Playground**: https://graphql-bookstore.fly.dev/
+- **GraphQL Endpoint**: https://graphql-bookstore.fly.dev/graphql
+- **Health Check**: https://graphql-bookstore.fly.dev/health

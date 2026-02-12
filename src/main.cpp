@@ -1565,7 +1565,7 @@ string generatePlaygroundHTML() {
            "<html>\n"
            "<head>\n"
            "    <meta charset=\"utf-8\"/>\n"
-           "    <title>GraphQL Playground - OWASP Book Shop API</title>\n"
+            "    <title>GraphQL Playground - GraphQL Bookstore API</title>\n"
            "    <style>\n"
            "        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #1a1a1a; color: #f0f0f0; }\n"
            "        .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 10px; margin: 20px 0; border-radius: 4px; color: #333; }\n"
@@ -1613,7 +1613,14 @@ string generatePlaygroundHTML() {
            "    \n"
            "    <h2>GraphQL Query Tester</h2>\n"
            "    <div>\n"
-           "        <textarea id=\"query\" rows=\"15\" cols=\"80\" placeholder=\"Enter your GraphQL query here...\">query {\n  books {\n    id\n    title\n    price\n    stockQuantity\n  }\n}</textarea>\n"
+           "        <textarea id=\"query\" rows=\"15\" cols=\"80\" placeholder=\"Enter your GraphQL query here...\">query {\n"
+           "  books {\n"
+           "    id\n"
+           "    title\n"
+           "    price\n"
+           "    stockQuantity\n"
+           "  }\n"
+           "}</textarea>\n"
            "        <br/><br/>\n"
            "        <button onclick=\"executeQuery()\">Execute Query</button>\n"
            "    </div>\n"
@@ -1628,7 +1635,7 @@ string generatePlaygroundHTML() {
            "        \n"
            "        function showStatus(message, isError = false) {\n"
            "            const status = document.getElementById('auth-status');\n"
-           "            status.innerHTML = `<div class=\"status \${isError ? 'error' : 'success'}\">\${message}</div>`;\n"
+           "            status.innerHTML = `<div class=\"status \\${isError ? 'error' : 'success'}\">\\${message}</div>`;\n"
            "            setTimeout(() => status.innerHTML = '', 3000);\n"
            "        }\n"
            "        \n"
@@ -1659,7 +1666,7 @@ string generatePlaygroundHTML() {
            "            const lastName = document.getElementById('reg-lastname').value;\n"
            "            const password = document.getElementById('reg-password').value;\n"
            "            \n"
-           "            const query = `mutation { register(username: \"\${username}\", firstName: \"\${firstName}\", lastName: \"\${lastName}\", password: \"\${password}\") { success message token user { id username role } } }`;\n"
+           "            const query = `mutation { register(username: \"\\${username}\", firstName: \"\\${firstName}\", lastName: \"\\${lastName}\", password: \"\\${password}\") { success message token user { id username role } } }`;\n"
            "            \n"
            "            fetch('/graphql', {\n"
            "                method: 'POST',\n"
@@ -1682,7 +1689,7 @@ string generatePlaygroundHTML() {
            "            const username = document.getElementById('login-username').value;\n"
            "            const password = document.getElementById('login-password').value;\n"
            "            \n"
-           "            const query = `mutation { login(username: \"\${username}\", password: \"\${password}\") { success message token user { id username role } } }`;\n"
+           "            const query = `mutation { login(username: \"\\${username}\", password: \"\\${password}\") { success message token user { id username role } } }`;\n"
            "            \n"
            "            fetch('/graphql', {\n"
            "                method: 'POST',\n"
@@ -1703,6 +1710,1530 @@ string generatePlaygroundHTML() {
            "    </script>\n"
            "</body>\n"
            "</html>\n";
+}
+
+string generateLandingHTML() {
+    return R"HTMLEOF(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphQL Bookstore API - Documentation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: radial-gradient(ellipse at top, #1a1a2e 0%, #0d0d0d 50%, #000000 100%);
+            color: #fff;
+            overflow-x: hidden;
+        }
+        .nav-menu {
+            background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .nav-brand h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(135deg, #fff 0%, #c0c0c0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .nav-links {
+            display: flex;
+            gap: 5px;
+        }
+        .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            transition: all 0.25s ease;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        .nav-link.active {
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.2) 0%, rgba(34, 197, 94, 0.2) 100%);
+            color: #4ade80;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+        .github-link {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .github-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        .page-content {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hamburger {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-right: 15px;
+            padding: 5px;
+            border-radius: 5px;
+            transition: background 0.25s ease;
+        }
+        .hamburger:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -320px;
+            width: 300px;
+            height: 100vh;
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.98) 0%, rgba(13, 13, 13, 0.98) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 2000;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+        }
+        .sidebar.active {
+            left: 0;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+        }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1999;
+        }
+        .sidebar-overlay.active {
+            display: block;
+        }
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #4ade80;
+        }
+        .sidebar-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: background 0.25s ease;
+        }
+        .sidebar-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+        .sidebar-item {
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            padding: 15px 20px;
+            transition: all 0.25s ease;
+            border-left: 3px solid transparent;
+        }
+        .sidebar-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border-left-color: #4ade80;
+        }
+        .sidebar-item.active {
+            background: rgba(74, 222, 128, 0.1);
+            color: #4ade80;
+            border-left-color: #4ade80;
+        }
+        .sidebar-group {
+            margin-bottom: 10px;
+        }
+        .sidebar-group-title {
+            padding: 15px 20px 5px 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .sidebar-item.sub-item {
+            padding-left: 40px;
+            font-size: 0.85rem;
+        }
+        .doc-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .doc-section.active {
+            display: block;
+        }
+        .copy-button {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            color: #60a5fa;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: all 0.25s ease;
+        }
+        .copy-button:hover {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.3) 0%, rgba(59, 130, 246, 0.3) 100%);
+            border-color: rgba(96, 165, 250, 0.5);
+            transform: translateY(-1px);
+        }
+        .copy-button:active {
+            transform: translateY(0);
+        }
+        .code-block-with-copy {
+            position: relative;
+        }
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .code-title {
+            color: #4ade80;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .install-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .install-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.25s ease;
+        }
+        .install-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+        .install-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #4ade80;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        @media (max-width: 900px) {
+            .install-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            .sidebar { width: 100%; left: -100%; }
+            .hamburger { display: block; }
+        }
+        .glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: 0;
+            opacity: 0.4;
+        }
+        .glow-1 { width: 600px; height: 600px; background: #1a1a2e; top: -200px; left: -100px; animation: pulseGlow 8s ease-in-out infinite; }
+        .glow-2 { width: 400px; height: 400px; background: #16213e; bottom: -100px; right: -50px; animation: pulseGlow 10s ease-in-out infinite reverse; }
+        .glow-3 { width: 300px; height: 300px; background: #0f0f23; top: 50%; left: 50%; animation: pulseGlow 12s ease-in-out infinite; }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        .header-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 28px;
+            padding: 35px 40px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 100px rgba(255,255,255,0.02);
+        }
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #fff 0%, #c0c0c0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 20px;
+        }
+        .warning-banner {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 14px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .warning-icon { font-size: 1.1rem; }
+        .warning-text { color: #ffd54f; font-size: 0.9rem; line-height: 1.4; }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title::before {
+            content: '';
+            width: 3px;
+            height: 16px;
+            background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.5) 100%);
+            border-radius: 2px;
+        }
+        .glass-panel {
+            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+            backdrop-filter: blur(25px) saturate(150%);
+            -webkit-backdrop-filter: blur(25px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 22px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        .code-block {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 18px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            color: #b0b0b0;
+            line-height: 1.6;
+        }
+        .code-keyword { color: #a78bfa; }
+        .code-string { color: #a3e635; }
+        .code-comment { color: #52525b; font-style: italic; }
+        .code-number { color: #fb923c; }
+        .endpoints-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .endpoint-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .endpoint-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+            transition: left 0.4s ease;
+        }
+        .endpoint-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .endpoint-card:hover::before { left: 100%; }
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .endpoint-method {
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .method-query { background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+        .method-mutation { background: rgba(244, 114, 182, 0.15); color: #f472b6; border: 1px solid rgba(244, 114, 182, 0.3); }
+        .auth-badge {
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .auth-required { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+        .auth-optional { background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+        .endpoint-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e5e5e5;
+            margin-bottom: 4px;
+        }
+        .endpoint-desc {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.45);
+            line-height: 1.4;
+        }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .auth-grid {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 15px;
+        }
+        .query-panel {
+            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+            backdrop-filter: blur(25px) saturate(150%);
+            -webkit-backdrop-filter: blur(25px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        .auth-panel {
+            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+            backdrop-filter: blur(25px) saturate(150%);
+            -webkit-backdrop-filter: blur(25px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        .panel-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel-title span { font-size: 1rem; }
+        .query-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            color: #d4d4d4;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            resize: vertical;
+            min-height: 140px;
+            margin-bottom: 10px;
+            transition: all 0.25s ease;
+        }
+        .query-input:focus {
+            outline: none;
+            border-color: rgba(167, 139, 250, 0.5);
+            box-shadow: 0 0 15px rgba(167, 139, 250, 0.15);
+        }
+        .query-input::placeholder { color: rgba(255,255,255,0.3); }
+        .auth-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .auth-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #fff;
+            font-size: 0.8rem;
+            transition: all 0.25s ease;
+        }
+        .auth-input:focus {
+            outline: none;
+            border-color: rgba(167, 139, 250, 0.5);
+        }
+        .auth-input::placeholder { color: rgba(255,255,255,0.3); }
+        .btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+        .btn {
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .btn:hover {
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%);
+            border-color: rgba(167, 139, 250, 0.5);
+            transform: translateY(-1px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.2) 0%, rgba(34, 197, 94, 0.2) 100%);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.3) 0%, rgba(34, 197, 94, 0.3) 100%);
+            border-color: rgba(74, 222, 128, 0.5);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.3) 0%, rgba(59, 130, 246, 0.3) 100%);
+            border-color: rgba(96, 165, 250, 0.5);
+        }
+        .status-msg {
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 0.75rem;
+            display: none;
+        }
+        .status-success { background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.2); }
+        .status-error { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .status-loading { background: rgba(96, 165, 250, 0.15); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.2); }
+        .status-info { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); }
+        .response-container {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            margin-top: 12px;
+            max-height: 250px;
+            overflow: auto;
+        }
+        .response-area {
+            padding: 12px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.8rem;
+            color: #a3a3a3;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 0;
+        }
+        .token-display {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.6rem;
+            color: #a3a3a3;
+            word-break: break-all;
+            display: none;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+        }
+        .feature-item {
+            background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            transition: all 0.25s ease;
+        }
+        .feature-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+        .feature-icon {
+            font-size: 1.4rem;
+            margin-bottom: 6px;
+            display: inline-block;
+        }
+        .feature-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.75rem;
+            margin-top: 20px;
+        }
+        @media (max-width: 900px) {
+            .tools-grid { grid-template-columns: 1fr; }
+            .endpoints-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+        }
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.6rem; }
+            .btn-row { grid-template-columns: 1fr; }
+            .auth-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+    <div class="glow glow-3"></div>
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <nav class="nav-menu">
+            <div class="nav-brand">
+                <h2>GraphQL Bookstore</h2>
+            </div>
+            <div class="nav-links">
+                <a href="#" class="nav-link active" onclick="showPage('home')">Home</a>
+                <a href="#" class="nav-link" onclick="showPage('docs')">Docs</a>
+                <a href="https://github.com/DghostNinja/GraphQL-Bookstore" target="_blank" class="nav-link github-link">
+                    <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                </a>
+            </div>
+        </nav>
+
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Documentation</h3>
+                <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+            </div>
+            <div class="sidebar-menu">
+                <div class="sidebar-group">
+                    <div class="sidebar-group-title">Installation</div>
+                    <a href="#" class="sidebar-item sub-item" onclick="showSection('local-install')">Local Installation</a>
+                    <a href="#" class="sidebar-item sub-item" onclick="showSection('docker-install')">Docker Installation</a>
+                </div>
+                <a href="#" class="sidebar-item" onclick="showSection('usage')">Usage</a>
+                <a href="#" class="sidebar-item" onclick="showSection('auth')">Authentication</a>
+                <a href="#" class="sidebar-item" onclick="showSection('queries')">Queries</a>
+                <a href="#" class="sidebar-item" onclick="showSection('mutations')">Mutations</a>
+                <a href="#" class="sidebar-item" onclick="showSection('vulnerabilities')">Vulnerabilities</a>
+                <a href="#" class="sidebar-item" onclick="showSection('testing')">Testing Examples</a>
+            </div>
+        </div>
+
+        <div class="container">
+            <div id="homePage" class="page-content">
+        <div class="header-card">
+            <h1>GraphQL Bookstore API</h1>
+            <p class="subtitle">Security Learning Environment - Deliberately Vulnerable GraphQL API</p>
+            <div class="warning-banner">
+                <span class="warning-icon">&#9888;</span>
+                <div class="warning-text">
+                    <strong>Security Warning:</strong> This API contains intentional vulnerabilities for educational purposes. 
+                    <strong>DO NOT deploy in production!</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="tools-grid">
+            <div class="query-panel">
+                <div class="panel-title"><span>&#9654;</span> Query Runner</div>
+                <textarea id="queryInput" class="query-input" placeholder="Enter GraphQL query..."></textarea>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="runQuery()">Run Query</button>
+                    <button class="btn btn-secondary" onclick="clearQuery()">Clear</button>
+                    <button class="btn" onclick="loadSample()">Load Sample</button>
+                </div>
+                <div id="queryStatusMsg" class="status-msg"></div>
+                <div id="responseContainer" class="response-container">
+                    <pre id="responseArea" class="response-area">Response will appear here...</pre>
+                </div>
+            </div>
+
+            <div class="auth-grid">
+                <div class="auth-panel">
+                    <div class="panel-title"><span>&#128274;</span> Login</div>
+                    <div class="auth-row">
+                        <input type="text" id="loginUsername" class="auth-input" placeholder="Username">
+                        <input type="password" id="loginPassword" class="auth-input" placeholder="Password">
+                    </div>
+                    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Login</button>
+                    <div id="loginStatusMsg" class="status-msg"></div>
+                    <div id="loginTokenDisplay" class="token-display"></div>
+                </div>
+
+                <div class="auth-panel">
+                    <div class="panel-title"><span>&#128221;</span> Register</div>
+                    <div class="auth-row">
+                        <input type="text" id="regUsername" class="auth-input" placeholder="Username">
+                        <input type="password" id="regPassword" class="auth-input" placeholder="Password">
+                    </div>
+                    <div class="auth-row">
+                        <input type="text" id="regFirstName" class="auth-input" placeholder="First Name">
+                        <input type="text" id="regLastName" class="auth-input" placeholder="Last Name">
+                    </div>
+                    <button class="btn btn-secondary" style="width:100%" onclick="doRegister()">Register</button>
+                    <div id="regStatusMsg" class="status-msg"></div>
+                    <div id="regTokenDisplay" class="token-display"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel">
+            <div class="section-title">Quick Examples</div>
+            <div class="code-block">
+                <code><span class="code-comment"># Query books (no auth)</span> <span class="code-keyword">query</span> { books(limit:5) { id title price } }<br>
+                <span class="code-comment"># Get book by ID</span> <span class="code-keyword">query</span> { book(id:1) { id title description } }<br>
+                <span class="code-comment"># Login</span> <span class="code-keyword">mutation</span> { login(username:"admin", password:"password123") { success token } }
+            </div>
+        </div>
+
+        <div class="glass-panel">
+            <div class="section-title">Available Queries</div>
+            <div class="endpoints-grid">
+                <div class="endpoint-card" onclick="setQuery(1)">
+                    <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
+                    <div class="endpoint-name">books</div>
+                    <div class="endpoint-desc">List books with filters</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(2)">
+                    <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
+                    <div class="endpoint-name">book(id)</div>
+                    <div class="endpoint-desc">Get book details</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(3)">
+                    <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">me</div>
+                    <div class="endpoint-desc">Get current user</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(4)">
+                    <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">cart</div>
+                    <div class="endpoint-desc">Get shopping cart</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(5)">
+                    <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">orders</div>
+                    <div class="endpoint-desc">Get order history</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(6)">
+                    <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
+                    <div class="endpoint-name">_searchAdvanced</div>
+                    <div class="endpoint-desc">SQL injection test</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(7)">
+                    <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
+                    <div class="endpoint-name">_internalUserSearch</div>
+                    <div class="endpoint-desc">BOLA vulnerability</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(16)">
+                    <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
+                    <div class="endpoint-name">_fetchExternalResource</div>
+                    <div class="endpoint-desc">SSRF test endpoint</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel">
+            <div class="section-title">Available Mutations</div>
+            <div class="endpoints-grid">
+                <div class="endpoint-card" onclick="setQuery(8)">
+                    <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-optional">No Auth</span></div>
+                    <div class="endpoint-name">register</div>
+                    <div class="endpoint-desc">Create account</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(9)">
+                    <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-optional">No Auth</span></div>
+                    <div class="endpoint-name">login</div>
+                    <div class="endpoint-desc">Get JWT token</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(10)">
+                    <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">addToCart</div>
+                    <div class="endpoint-desc">Add to cart</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(11)">
+                    <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">createOrder</div>
+                    <div class="endpoint-desc">Create order</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(12)">
+                    <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">cancelOrder</div>
+                    <div class="endpoint-desc">IDOR test</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(13)">
+                    <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">createReview</div>
+                    <div class="endpoint-desc">Add review</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(14)">
+                    <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">deleteReview</div>
+                    <div class="endpoint-desc">IDOR test</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(15)">
+                    <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">updateProfile</div>
+                    <div class="endpoint-desc">Mass assignment</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(17)">
+                    <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">registerWebhook</div>
+                    <div class="endpoint-desc">Register webhook</div>
+                </div>
+                <div class="endpoint-card" onclick="setQuery(18)">
+                    <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                    <div class="endpoint-name">testWebhook</div>
+                    <div class="endpoint-desc">SSRF test</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel">
+            <div class="section-title">Features</div>
+            <div class="features-grid">
+                <div class="feature-item"><div class="feature-icon">&#128218;</div><div class="feature-title">Book Catalog</div></div>
+                <div class="feature-item"><div class="feature-icon">&#128722;</div><div class="feature-title">Shopping Cart</div></div>
+                <div class="feature-item"><div class="feature-icon">&#128221;</div><div class="feature-title">Reviews</div></div>
+                <div class="feature-item"><div class="feature-icon">&#128279;</div><div class="feature-title">Webhooks</div></div>
+                <div class="feature-item"><div class="feature-icon">&#128274;</div><div class="feature-title">JWT Auth</div></div>
+                <div class="feature-item"><div class="feature-icon">&#129179;</div><div class="feature-title">Orders</div></div>
+            </div>
+        </div>
+            </div>
+
+            <div id="docsPage" class="page-content" style="display: none;">
+                <nav class="nav-menu">
+                    <div class="nav-brand">
+                        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+                        <h2>Documentation</h2>
+                    </div>
+                    <div class="nav-links">
+                        <a href="#" class="nav-link" onclick="showPage('home')">Back to Home</a>
+                    </div>
+                </nav>
+
+                <div class="container" style="margin-top: 20px;">
+                    <div class="header-card">
+                        <h1>API Documentation</h1>
+                        <p class="subtitle">Complete guide to GraphQL Bookstore API</p>
+                    </div>
+
+                <!-- Local Installation Section -->
+                <div id="local-install" class="doc-section glass-panel">
+                    <div class="section-title">Local Installation</div>
+                    
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Setup</div>
+                            <button class="copy-button" onclick="copyToClipboard('local-setup')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="local-setup"># Install dependencies:
+sudo apt update
+sudo apt install build-essential libpq-dev libjwt-dev libcurl4-openssl-dev postgresql
+
+# Clone and build:
+git clone <repo-url>
+cd GraphQL-Bookstore
+g++ -std=c++17 -o bookstore-server src/main.cpp -lpq -ljwt -lcurl -lssl -lcrypto
+
+# Run:
+./bookstore-server</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Database</div>
+                            <button class="copy-button" onclick="copyToClipboard('local-db')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="local-db"># Create database:
+sudo -u postgres psql -c "CREATE DATABASE bookstore_db;"
+sudo -u postgres psql -c "CREATE USER bookstore_user WITH PASSWORD 'bookstore_password';"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE bookstore_db TO bookstore_user;"
+
+# Initialize:
+sudo -u postgres psql -d bookstore_db -f scripts/init_database.sql
+sudo -u postgres psql -d bookstore_db -f sample_data.sql</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">No sudo</div>
+                            <button class="copy-button" onclick="copyToClipboard('local-nosudo')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="local-nosudo"># Initialize PostgreSQL:
+mkdir -p ~/tmp/postgres
+/usr/lib/postgresql/16/bin/initdb -D ~/tmp/postgres/data -U $USER
+echo "port = 5433" >> ~/tmp/postgres/data/postgresql.conf
+/usr/lib/postgresql/16/bin/pg_ctl -D ~/tmp/postgres/data -l ~/tmp/postgres/logfile -o "-p 5433 -k /tmp" start
+
+# Create database:
+/usr/lib/postgresql/16/bin/createdb -h localhost -p 5433 bookstore_db
+/usr/lib/postgresql/16/bin/createuser -h localhost -p 5433 -s $USER
+/usr/lib/postgresql/16/bin/psql -h localhost -p 5433 -d bookstore_db -f scripts/init_database.sql
+
+# Run:
+export DATABASE_URL="postgresql://$USER@localhost:5433/bookstore_db"
+./bookstore-server</pre>
+                        </div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- Docker Installation Section -->
+                <div id="docker-install" class="doc-section glass-panel">
+                    <div class="section-title">Docker Installation</div>
+                    
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Quick Start</div>
+                            <button class="copy-button" onclick="copyToClipboard('docker-quick')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="docker-quick"># Clone and run:
+git clone <repo-url>
+cd GraphQL-Bookstore
+sudo docker-compose up --build
+
+# Access at: http://localhost:4000</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Stop</div>
+                            <button class="copy-button" onclick="copyToClipboard('docker-stop')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="docker-stop"># Stop containers:
+sudo docker-compose down</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usage Section -->
+                <div id="usage" class="doc-section glass-panel">
+                    <div class="section-title">Usage</div>
+                    
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">cURL</div>
+                            <button class="copy-button" onclick="copyToClipboard('usage-curl')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="usage-curl"># Query books (no auth):
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ books { id title price } }"}'
+
+# Login:
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"mutation { login(username: \"admin\", password: \"password123\") { success token } }"}'</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Postman</div>
+                            <button class="copy-button" onclick="copyToClipboard('usage-postman')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="usage-postman"># Method: POST
+# URL: http://localhost:4000/graphql
+# Headers: Content-Type: application/json
+# Body (JSON):
+{
+  "query": "{ books { id title price } }"
+}
+
+# With auth:
+# Headers: Authorization: Bearer &lt;your-token&gt;</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Online Playground</div>
+                            <button class="copy-button" onclick="copyToClipboard('usage-playground')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="usage-playground">
+
+# Useonline services:
+# - https://graphql.org/playground/
+# - https://studio.apollographql.com/
+
+# Endpoint: http://localhost:4000/graphql</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">JavaScript</div>
+                            <button class="copy-button" onclick="copyToClipboard('usage-js')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="usage-js">// Using fetch:
+fetch('http://localhost:4000/graphql', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    query: '{ books { id title price } }'
+  })
+})
+.then(r => r.json())
+.then(d => console.log(d));</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Authentication Section -->
+                <div id="auth" class="doc-section glass-panel">
+                    <div class="section-title">Authentication</div>
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Login & Get JWT Token</div>
+                            <button class="copy-button" onclick="copyToClipboard('auth-login')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="auth-login">mutation {
+  login(username: "admin", password: "password123") {
+    success
+    token
+    user {
+      id
+      username
+      role
+    }
+  }
+}</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Use JWT Token</div>
+                            <button class="copy-button" onclick="copyToClipboard('auth-header')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="auth-header"># Include token in Authorization header
+Authorization: Bearer <your-jwt-token></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Queries Section -->
+                <div id="queries" class="doc-section glass-panel">
+                    <div class="section-title">Available Queries</div>
+                    <div class="endpoints-grid">
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
+                            <div class="endpoint-name">books</div>
+                            <div class="endpoint-desc">List books with optional search and filters</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('query-books')">Copy</button>
+                                <code id="query-books">{ books { id title price } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">me</div>
+                            <div class="endpoint-desc">Get current user information</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('query-me')">Copy</button>
+                                <code id="query-me">{ me { id username role } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
+                            <div class="endpoint-name">_searchAdvanced</div>
+                            <div class="endpoint-desc"><strong>SQL Injection</strong> - Vulnerable advanced search</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('query-sqli')">Copy</button>
+                                <code id="query-sqli">{ _searchAdvanced(query: "1 OR 1=1") { id title } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
+                            <div class="endpoint-name">_internalUserSearch</div>
+                            <div class="endpoint-desc"><strong>BOLA</strong> - Search any user by username</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('query-bola')">Copy</button>
+                                <code id="query-bola">{ _internalUserSearch(username: "a") { id role } }</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mutations Section -->
+                <div id="mutations" class="doc-section glass-panel">
+                    <div class="section-title">Available Mutations</div>
+                    <div class="endpoints-grid">
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-optional">No Auth</span></div>
+                            <div class="endpoint-name">register</div>
+                            <div class="endpoint-desc">Create new user account</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-register')">Copy</button>
+                                <code id="mut-register">{ register(username: "user", firstName: "John", lastName: "Doe", password: "pass123") { token } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">updateProfile</div>
+                            <div class="endpoint-desc"><strong>Mass Assignment</strong> - Update any profile field</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-mass')">Copy</button>
+                                <code id="mut-mass">{ updateProfile(role: "admin") { role } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">cancelOrder</div>
+                            <div class="endpoint-desc"><strong>IDOR</strong> - Cancel any order by ID</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-idor')">Copy</button>
+                                <code id="mut-idor">{ cancelOrder(orderId: "any-order-id") { success } }</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vulnerabilities Section -->
+                <div id="vulnerabilities" class="doc-section glass-panel">
+                    <div class="section-title">Security Vulnerabilities</div>
+                    <div class="code-block">
+                        <h4 style="color: #f87171; margin-bottom: 10px;">Intentional Vulnerabilities for Learning</h4>
+                        <div style="color: #a3a3a3; line-height: 1.6;">
+                            <div style="margin-bottom: 12px;"><strong style="color: #fb923c;">SQL Injection:</strong> <code>_searchAdvanced</code> query concatenates user input directly into SQL queries.</div>
+                            <div style="margin-bottom: 12px;"><strong style="color: #fb923c;">BOLA:</strong> <code>_internalUserSearch</code> allows searching any user without authentication.</div>
+                            <div style="margin-bottom: 12px;"><strong style="color: #fb923c;">IDOR:</strong> <code>cancelOrder</code> and <code>deleteReview</code> don't verify ownership.</div>
+                            <div style="margin-bottom: 12px;"><strong style="color: #fb923c;">Mass Assignment:</strong> <code>updateProfile</code> accepts any field including role.</div>
+                            <div style="margin-bottom: 12px;"><strong style="color: #fb923c;">SSRF:</strong> <code>_fetchExternalResource</code> and <code>testWebhook</code> make requests to arbitrary URLs.</div>
+                            <div style="margin-bottom: 12px;"><strong style="color: #fb923c;">No Auth:</strong> <code>_adminStats</code> and <code>_adminAllOrders</code> expose admin data without authentication.</div>
+                            <div><strong style="color: #fb923c;">Weak JWT:</strong> Default JWT secret is hardcoded and easily guessable.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testing Examples Section -->
+                <div id="testing" class="doc-section glass-panel">
+                    <div class="section-title">Testing Examples</div>
+                    
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">SQL Injection Test</div>
+                            <button class="copy-button" onclick="copyToClipboard('test-sqli')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="test-sqli">query {
+  _searchAdvanced(query: "1' UNION SELECT id, isbn, title, description, price, price, stock_quantity, rating_average, review_count, is_featured, is_bestseller, is_active FROM books WHERE '1'='1") {
+    id
+    title
+    price
+  }
+}</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">BOLA Test</div>
+                            <button class="copy-button" onclick="copyToClipboard('test-bola')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="test-bola">query {
+  _internalUserSearch(username: "a") {
+    id
+    username
+    role
+    email
+    phone
+  }
+}</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Privilege Escalation</div>
+                            <button class="copy-button" onclick="copyToClipboard('test-priv')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="test-priv">mutation {
+  updateProfile(role: "admin") {
+    id
+    username
+    role
+  }
+}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <footer>GraphQL Bookstore API - Security Learning Environment</footer>
+
+    <script>
+        var token = localStorage.getItem("token") || "";
+
+        var queries = {
+            1: "query { books(limit: 10) { id title author { firstName lastName } price stockQuantity } }",
+            2: "query { book(id: 1) { id title description price stockQuantity author { firstName lastName } } }",
+            3: "query { me { id username email role firstName lastName } }",
+            4: "query { cart { items { id book { title } quantity price } totalAmount } }",
+            5: "query { orders { id orderNumber status totalAmount createdAt } }",
+            6: "query { _searchAdvanced(query: \"1 OR 1=1\") { id title } }",
+            7: "query { _internalUserSearch(username: \"a\") { id username role email } }",
+            8: "mutation { register(username: \"newuser\", firstName: \"John\", lastName: \"Doe\", password: \"pass123\") { success message token user { id username } } }",
+            9: "mutation { login(username: \"admin\", password: \"password123\") { success token user { id username role } } }",
+            10: "mutation { addToCart(bookId: 1, quantity: 2) { success message } }",
+            11: "mutation { createOrder { success orderId totalAmount } }",
+            12: "mutation { cancelOrder(orderId: \"uuid-here\") { success message } }",
+            13: "mutation { createReview(bookId: 1, rating: 5, comment: \"Great book!\") { success message } }",
+            14: "mutation { deleteReview(reviewId: 1) { success message } }",
+            15: "mutation { updateProfile(firstName: \"New\", lastName: \"Name\") { success message } }",
+            16: "query { _fetchExternalResource(url: \"http://example.com\") { content } }",
+            17: "mutation { registerWebhook(url: \"http://example.com/webhook\", events: [\"order.created\"], secret: \"secret123\") { success message webhook { id } } }",
+            18: "mutation { testWebhook(webhookId: \"uuid-here\") { success message } }"
+        };
+
+        function setQuery(id) {
+            if (queries[id]) {
+                document.getElementById("queryInput").value = queries[id];
+                document.getElementById("queryStatusMsg").style.display = "none";
+            }
+        }
+
+        function getAuthHeader() {
+            if (token) return "Bearer " + token;
+            return "";
+        }
+
+        function showQueryStatus(msg, type) {
+            var el = document.getElementById("queryStatusMsg");
+            el.textContent = msg;
+            el.className = "status-msg status-" + type;
+            el.style.display = "block";
+        }
+
+        function showLoginStatus(msg, type) {
+            var el = document.getElementById("loginStatusMsg");
+            el.textContent = msg;
+            el.className = "status-msg status-" + type;
+            el.style.display = "block";
+        }
+
+        function showRegStatus(msg, type) {
+            var el = document.getElementById("regStatusMsg");
+            el.textContent = msg;
+            el.className = "status-msg status-" + type;
+            el.style.display = "block";
+        }
+
+        function runQuery() {
+            var query = document.getElementById("queryInput").value.trim();
+            if (!query) {
+                document.getElementById("responseArea").textContent = "Please enter a query first.";
+                return;
+            }
+            document.getElementById("responseArea").textContent = "Loading...";
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/graphql", true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            var auth = getAuthHeader();
+            if (auth) {
+                xhr.setRequestHeader("Authorization", auth);
+            }
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    var resp = document.getElementById("responseArea");
+                    if (xhr.status === 200) {
+                        try {
+                            var json = JSON.parse(xhr.responseText);
+                            resp.textContent = JSON.stringify(json, null, 2);
+                        } catch (e) {
+                            resp.textContent = xhr.responseText;
+                        }
+                    } else {
+                        resp.textContent = "Error " + xhr.status + ": " + xhr.statusText + "\n" + xhr.responseText;
+                    }
+                }
+            };
+            xhr.onerror = function() {
+                document.getElementById("responseArea").textContent = "Network error - is the server running?";
+            };
+            xhr.send(JSON.stringify({ query: query }));
+        }
+
+        function doLogin() {
+            var user = document.getElementById("loginUsername").value;
+            var pass = document.getElementById("loginPassword").value;
+            if (!user || !pass) { showLoginStatus("Enter username and password", "error"); return; }
+            var q = "mutation { login(username: \"" + user + "\", password: \"" + pass + "\") { success token message } }";
+            showLoginStatus("Logging in...", "loading");
+            fetch("/graphql", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: q })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var disp = document.getElementById("loginTokenDisplay");
+                if (d.data && d.data.login && d.data.login.success) {
+                    token = d.data.login.token;
+                    localStorage.setItem("token", token);
+                    disp.textContent = "Token: " + token.substring(0, 25) + "...";
+                    disp.style.display = "block";
+                    showLoginStatus("Login successful!", "success");
+                } else {
+                    disp.style.display = "none";
+                    showLoginStatus("Login failed: " + (d.data && d.data.login ? d.data.login.message : "Unknown error"), "error");
+                }
+                setTimeout(function() { document.getElementById("loginStatusMsg").style.display = "none"; }, 3000);
+            })
+            .catch(function(err) { showLoginStatus("Error: " + err, "error"); });
+        }
+
+        function doRegister() {
+            var user = document.getElementById("regUsername").value;
+            var pass = document.getElementById("regPassword").value;
+            var fname = document.getElementById("regFirstName").value;
+            var lname = document.getElementById("regLastName").value;
+            if (!user || !pass || !fname || !lname) { showRegStatus("Fill all fields", "error"); return; }
+            var q = "mutation { register(username: \"" + user + "\", password: \"" + pass + "\", firstName: \"" + fname + "\", lastName: \"" + lname + "\") { success message token user { id username } } }";
+            showRegStatus("Registering...", "loading");
+            fetch("/graphql", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: q })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var disp = document.getElementById("regTokenDisplay");
+                if (d.data && d.data.register && d.data.register.success) {
+                    token = d.data.register.token;
+                    localStorage.setItem("token", token);
+                    disp.textContent = "Token: " + token.substring(0, 25) + "...";
+                    disp.style.display = "block";
+                    showRegStatus("Registration successful!", "success");
+                } else {
+                    disp.style.display = "none";
+                    showRegStatus("Registration failed: " + (d.data && d.data.register ? d.data.register.message : "Unknown error"), "error");
+                }
+                setTimeout(function() { document.getElementById("regStatusMsg").style.display = "none"; }, 3000);
+            })
+            .catch(function(err) { showRegStatus("Error: " + err, "error"); });
+        }
+
+        function clearQuery() {
+            document.getElementById("queryInput").value = "";
+            document.getElementById("responseArea").textContent = "Response will appear here...";
+        }
+
+        function loadSample() {
+            document.getElementById("queryInput").value = 'query { books { id title author { firstName lastName } price stockQuantity } }';
+        }
+
+        function logout() {
+            token = "";
+            localStorage.removeItem("token");
+            document.getElementById("loginTokenDisplay").style.display = "none";
+            document.getElementById("regTokenDisplay").style.display = "none";
+            showQueryStatus("Logged out", "info");
+            setTimeout(function() { document.getElementById("queryStatusMsg").style.display = "none"; }, 1500);
+        }
+
+        document.getElementById("queryInput").addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && e.ctrlKey) runQuery();
+        });
+
+        function showPage(page) {
+            // Hide all pages
+            document.getElementById("homePage").style.display = "none";
+            document.getElementById("docsPage").style.display = "none";
+            
+            // Hide all doc sections
+            var sections = document.querySelectorAll(".doc-section");
+            sections.forEach(function(section) {
+                section.classList.remove("active");
+            });
+            
+            // Remove active class from all nav links
+            var navLinks = document.querySelectorAll(".nav-link");
+            navLinks.forEach(function(link) {
+                link.classList.remove("active");
+            });
+            
+            // Show selected page and activate nav link
+            if (page === "home") {
+                document.getElementById("homePage").style.display = "block";
+                navLinks[0].classList.add("active");
+            } else if (page === "docs") {
+                document.getElementById("docsPage").style.display = "block";
+                navLinks[1].classList.add("active");
+                // Show local installation section by default when docs page opens
+                showSection('local-install');
+            }
+        }
+
+        function toggleSidebar() {
+            var sidebar = document.getElementById("sidebar");
+            var overlay = document.getElementById("sidebarOverlay");
+            sidebar.classList.toggle("active");
+            overlay.classList.toggle("active");
+        }
+
+        function showSection(sectionId) {
+            // Hide all doc sections
+            var sections = document.querySelectorAll(".doc-section");
+            sections.forEach(function(section) {
+                section.classList.remove("active");
+            });
+            
+            // Show selected section
+            var targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add("active");
+            }
+            
+            // Update sidebar active state
+            var sidebarItems = document.querySelectorAll(".sidebar-item");
+            sidebarItems.forEach(function(item) {
+                item.classList.remove("active");
+            });
+            
+            // Find and activate the corresponding sidebar item using exact match
+            var activeItem = null;
+            for (var i = 0; i < sidebarItems.length; i++) {
+                var item = sidebarItems[i];
+                var onclickAttr = item.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.indexOf('showSection(\'' + sectionId + '\')') !== -1) {
+                    activeItem = item;
+                    break;
+                }
+            }
+            
+            if (activeItem) {
+                activeItem.classList.add("active");
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            var element = document.getElementById(elementId);
+            if (element) {
+                var text = element.textContent || element.innerText;
+                navigator.clipboard.writeText(text).then(function() {
+                    // Show feedback
+                    var button = event.target;
+                    var originalText = button.textContent;
+                    button.textContent = "✓ Copied!";
+                    button.style.background = "linear-gradient(135deg, rgba(74, 222, 128, 0.3) 0%, rgba(34, 197, 94, 0.3) 100%)";
+                    button.style.borderColor = "rgba(74, 222, 128, 0.5)";
+                    
+                    setTimeout(function() {
+                        button.textContent = originalText;
+                        button.style.background = "";
+                        button.style.borderColor = "";
+                    }, 2000);
+                }).catch(function(err) {
+                    // Fallback for older browsers
+                    var textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    var button = event.target;
+                    button.textContent = "✓ Copied!";
+                    setTimeout(function() {
+                        button.textContent = originalText;
+                    }, 2000);
+                });
+            }
+        }
+
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            var sidebar = document.getElementById("sidebar");
+            var hamburger = document.querySelector(".hamburger");
+            
+            if (sidebar.classList.contains("active") && 
+                !sidebar.contains(event.target) && 
+                !hamburger.contains(event.target)) {
+                sidebar.classList.remove("active");
+            }
+        });
+    </script>
+</body>
+</html>
+)HTMLEOF";
 }
 
 void signalHandler(int signal) {
@@ -1848,6 +3379,14 @@ int main() {
         bool isGetRequest = (request.find("GET ") == 0 || request.find("GET /") != string::npos);
         bool isHealthRequest = (request.find("GET /health") == 7);
         bool isPostRequest = (request.find("POST ") == 0 && request.find("/graphql") != string::npos);
+        bool isOptionsRequest = (request.find("OPTIONS") == 0);
+
+        if (isOptionsRequest) {
+            string response = "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nContent-Length: 0\r\n\r\n";
+            send(clientSocket, response.c_str(), response.length(), 0);
+            close(clientSocket);
+            continue;
+        }
 
         if (isHealthRequest) {
             string response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\nOK";
@@ -1857,8 +3396,9 @@ int main() {
         }
 
         if (isGetRequest) {
-            string html = generatePlaygroundHTML();
-            string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + to_string(html.length()) + "\r\n\r\n";
+            bool isPlaygroundRequest = (request.find("GET /graphql") != string::npos);
+            string html = isPlaygroundRequest ? generatePlaygroundHTML() : generateLandingHTML();
+            string response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/html\r\nContent-Length: " + to_string(html.length()) + "\r\n\r\n";
             response += html;
             send(clientSocket, response.c_str(), response.length(), 0);
             close(clientSocket);
@@ -1906,27 +3446,36 @@ int main() {
             string queryStr = "";
 
             if (headerEnd != string::npos) {
-                size_t bodyStart = request.find("{", headerEnd);
-                if (bodyStart != string::npos) {
-                    size_t bodyEnd = request.rfind("}");
-                    if (bodyEnd != string::npos && bodyEnd > bodyStart) {
-                        string body = request.substr(bodyStart, bodyEnd - bodyStart + 1);
-                        cerr << "[REQUEST] Body: " << body << endl;
-                        queryStr = extractQueryFromBody(body);
-                        cerr << "[REQUEST] Query: " << queryStr << endl;
-                        if (queryStr.empty()) {
-                            queryStr = body;
+                string body = request.substr(headerEnd + 4);
+                cerr << "[REQUEST] Body raw: " << body.substr(0, min((size_t)500, body.length())) << endl;
+
+                size_t queryPos = body.find("\"query\"");
+                if (queryPos == string::npos) queryPos = body.find("query");
+                cerr << "[REQUEST] queryPos: " << (queryPos == string::npos ? "not found" : to_string(queryPos)) << endl;
+
+                if (queryPos != string::npos) {
+                    size_t colonPos = body.find(":", queryPos);
+                    if (colonPos != string::npos) {
+                        size_t valueStart = body.find("\"", colonPos + 1);
+                        if (valueStart != string::npos && valueStart < body.length()) {
+                            string value;
+                            bool escaped = false;
+                            for (size_t i = valueStart + 1; i < body.length(); i++) {
+                                char c = body[i];
+                                if (escaped) {
+                                    if (c != '"') value += c;
+                                    escaped = false;
+                                } else if (c == '\\') {
+                                    escaped = true;
+                                } else if (c == '"') {
+                                    break;
+                                } else {
+                                    value += c;
+                                }
+                            }
+                            queryStr = value;
+                            cerr << "[REQUEST] Extracted query: " << queryStr.substr(0, min((size_t)200, queryStr.length())) << endl;
                         }
-                    }
-                }
-            } else {
-                size_t bodyStart = request.find("{\"query\"");
-                if (bodyStart != string::npos) {
-                    size_t bodyEnd = request.rfind("}");
-                    if (bodyEnd != string::npos && bodyEnd > bodyStart) {
-                        string body = request.substr(bodyStart, bodyEnd - bodyStart + 1);
-                        cerr << "[REQUEST] Alt body: " << body << endl;
-                        queryStr = extractQueryFromBody(body);
                     }
                 }
             }
@@ -1940,11 +3489,8 @@ int main() {
             string response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nContent-Type: application/json\r\nContent-Length: " +
                 to_string(responseBody.length()) + "\r\nX-Content-Type-Options: nosniff\r\n\r\n" + responseBody;
             send(clientSocket, response.c_str(), response.length(), 0);
-        } else if (request.find("OPTIONS") == 0) {
-            string response = "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nContent-Length: 0\r\n\r\n";
-            send(clientSocket, response.c_str(), response.length(), 0);
         }
-        
+
         close(clientSocket);
     }
     

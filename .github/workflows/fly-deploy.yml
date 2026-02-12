@@ -84,9 +84,9 @@ jobs:
       - name: Deploy to Fly.io
         run: |
           # Create app if it doesn't exist
-          if ! fly apps list | grep -q owasp-bookshop; then
+          if ! fly apps list | grep -q graphql-bookstore; then
             echo "Creating Fly.io app..."
-            fly apps create --name owasp-bookshop --org personal
+            fly apps create --name graphql-bookstore --org personal
           fi
 
           # Set DATABASE_URL from GitHub secrets
