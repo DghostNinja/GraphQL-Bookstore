@@ -1902,6 +1902,14 @@ string generateLandingHTML() {
         .doc-section.active {
             display: block;
         }
+        .doc-section .code-block {
+            height: auto;
+            overflow: auto;
+        }
+        .doc-section .code-block .code-scroller {
+            animation: none;
+            white-space: pre-wrap;
+        }
         .copy-button {
             background: linear-gradient(135deg, rgba(96, 165, 250, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
             border: 1px solid rgba(96, 165, 250, 0.3);
@@ -2058,9 +2066,21 @@ string generateLandingHTML() {
             padding: 18px;
             font-family: 'Fira Code', 'Consolas', monospace;
             font-size: 0.85rem;
-            overflow-x: auto;
+            overflow: hidden;
             color: #b0b0b0;
             line-height: 1.6;
+            height: 180px;
+        }
+        .code-scroller {
+            animation: scrollCode 15s linear infinite;
+            white-space: nowrap;
+        }
+        @keyframes scrollCode {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+        .code-block:hover .code-scroller {
+            animation-play-state: paused;
         }
         .code-keyword { color: #a78bfa; }
         .code-string { color: #a3e635; }
@@ -2132,6 +2152,153 @@ string generateLandingHTML() {
             font-size: 0.85rem;
             color: rgba(255, 255, 255, 0.45);
             line-height: 1.4;
+        }
+        .api-link-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px auto 25px auto;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+            backdrop-filter: blur(25px) saturate(150%);
+            -webkit-backdrop-filter: blur(25px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+            width: fit-content;
+            animation: containerSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(-15px);
+        }
+        @keyframes containerSlideIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .glass-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.3) 0%, rgba(34, 197, 94, 0.3) 100%);
+            border: 1px solid rgba(74, 222, 128, 0.5);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); }
+            70% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+        }
+        .glass-icon svg {
+            width: 16px;
+            height: 16px;
+            fill: rgba(74, 222, 128, 0.9);
+        }
+        .api-link-text {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-style: italic;
+            font-family: 'Georgia', serif;
+        }
+        .api-link {
+            color: #4ade80;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.25s ease;
+        }
+        .api-link:hover {
+            color: #22c55e;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+        }
+        .api-link.copied {
+            color: #fbbf24;
+        }
+        .method-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        .method-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+        .method-post {
+            background: rgba(168, 85, 247, 0.2);
+            color: #a855f7;
+            border: 1px solid rgba(168, 85, 247, 0.4);
+        }
+        .method-get {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+        .method-info-text {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .vuln-slideshow {
+            background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        .vuln-card {
+            display: none;
+            text-align: center;
+            padding: 15px;
+            animation: vulnFadeIn 0.5s ease;
+        }
+        .vuln-card.active {
+            display: block;
+        }
+        @keyframes vulnFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .vuln-chapter {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #f472b6;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .vuln-hint {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+            line-height: 1.7;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .vuln-nav {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .vuln-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .vuln-dot.active {
+            background: #f472b6;
+            box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
         }
         .tools-grid {
             display: grid;
@@ -2390,6 +2557,61 @@ string generateLandingHTML() {
                     <strong>DO NOT deploy in production!</strong>
                 </div>
             </div>
+            <div class="api-link-container">
+                <div class="glass-icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                    </svg>
+                </div>
+                <span class="api-link-text">Access the API at:</span>
+                <a class="api-link" onclick="copyApiLink()" id="apiLink">api.graphqlbook.store/graphql</a>
+            </div>
+            
+            <div class="method-info">
+                <span class="method-badge method-post">POST</span> Queries & Mutations &nbsp;|&nbsp; 
+                <span class="method-badge method-get">GET</span> Queries only &nbsp;|&nbsp;
+                <span class="method-info-text">Use with GraphQL Playground, Postman, curl, etc.</span>
+            </div>
+        </div>
+
+        <div class="vuln-slideshow">
+            <div class="vuln-card active" data-index="0">
+                <div class="vuln-chapter">Chapter I: The Injection</div>
+                <div class="vuln-hint">"Beyond the veil of queries lies a passage where shadows speak in database tongues. Those who master the ancient art of string concatenation may bend the data realm to their will, extracting secrets from tables unseen."</div>
+            </div>
+            <div class="vuln-card" data-index="1">
+                <div class="vuln-chapter">Chapter II: The Broken Access</div>
+                <div class="vuln-hint">"In the halls of the API, doors stand unlocked for all who seek. The internal chambers of user data lie bare to any traveler - no guardian questions those who walk the hidden corridors."</div>
+            </div>
+            <div class="vuln-card" data-index="2">
+                <div class="vuln-chapter">Chapter III: The Misplaced Trust</div>
+                <div class="vuln-hint">"The order bears the mark of its creator, yet any hand may seize it. When ownership goes unverified, the boundaries between yours and theirs dissolve into shadow."</div>
+            </div>
+            <div class="vuln-card" data-index="3">
+                <div class="vuln-chapter">Chapter IV: The Open Ledger</div>
+                <div class="vuln-hint">"Fields once forbidden now yield to the clever coder's touch. When all paths lead to the throne, when every attribute accepts the whisperer's will, true power transcends mere mortal constraints."</div>
+            </div>
+            <div class="vuln-card" data-index="4">
+                <div class="vuln-chapter">Chapter V: The Extending Reach</div>
+                <div class="vuln-hint">"Beyond the visible web lies a realm of machines and metadata. The curious can traverse the boundary between the public face and the hidden infrastructure that powers the kingdom."</div>
+            </div>
+            <div class="vuln-card" data-index="5">
+                <div class="vuln-chapter">Chapter VI: The Unwatched Treasury</div>
+                <div class="vuln-hint">"Crown jewels - order records, payment ledgers, system statistics - all lie within reach of the unguarded gate. The keepers have left their treasures unwatched, accessible to any who know where to look."</div>
+            </div>
+            <div class="vuln-card" data-index="6">
+                <div class="vuln-chapter">Chapter VII: The Skeleton Key</div>
+                <div class="vuln-hint">"A single key unlocks many doors, yet this key was forged from common words. The authentication bearer need only speak the secret phrase to command the realm's resources."</div>
+            </div>
+            <div class="vuln-nav">
+                <div class="vuln-dot active" onclick="showVulnCard(0)"></div>
+                <div class="vuln-dot" onclick="showVulnCard(1)"></div>
+                <div class="vuln-dot" onclick="showVulnCard(2)"></div>
+                <div class="vuln-dot" onclick="showVulnCard(3)"></div>
+                <div class="vuln-dot" onclick="showVulnCard(4)"></div>
+                <div class="vuln-dot" onclick="showVulnCard(5)"></div>
+                <div class="vuln-dot" onclick="showVulnCard(6)"></div>
+            </div>
         </div>
 
         <div class="tools-grid">
@@ -2439,9 +2661,20 @@ string generateLandingHTML() {
         <div class="glass-panel">
             <div class="section-title">Quick Examples</div>
             <div class="code-block">
+                <div class="code-scroller">
                 <code><span class="code-comment"># Query books (no auth)</span> <span class="code-keyword">query</span> { books(limit:5) { id title price } }<br>
                 <span class="code-comment"># Get book by ID</span> <span class="code-keyword">query</span> { book(id:1) { id title description } }<br>
-                <span class="code-comment"># Login</span> <span class="code-keyword">mutation</span> { login(username:"admin", password:"password123") { success token } }
+                <span class="code-comment"># Login</span> <span class="code-keyword">mutation</span> { login(username:"admin", password:"password123") { success token } }<br>
+                <span class="code-comment"># Register</span> <span class="code-keyword">mutation</span> { register(username:"user", firstName:"John", lastName:"Doe", password:"pass") { success } }<br>
+                <span class="code-comment"># Get current user</span> <span class="code-keyword">query</span> { me { id username role firstName } }<br>
+                <span class="code-comment"># Add to cart</span> <span class="code-keyword">mutation</span> { addToCart(bookId:1, quantity:2) { success } }<br>
+                <span class="code-comment"># View cart</span> <span class="code-keyword">query</span> { cart { id items { bookId quantity } } }<br>
+                <span class="code-comment"># Create order</span> <span class="code-keyword">mutation</span> { createOrder { success orderId } }<br>
+                <span class="code-comment"># View orders</span> <span class="code-keyword">query</span> { orders { id orderNumber status } }<br>
+                <span class="code-comment"># SQL Injection</span> <span class="code-keyword">query</span> { _searchAdvanced(query:"' OR 1=1--") { id title } }<br>
+                <span class="code-comment"># BOLA</span> <span class="code-keyword">query</span> { _internalUserSearch(username:"admin") { id role } }
+                </code>
+                </div>
             </div>
         </div>
 
@@ -3100,6 +3333,58 @@ Authorization: Bearer <your-jwt-token></pre>
             document.getElementById("queryInput").value = 'query { books { id title author { firstName lastName } price stockQuantity } }';
         }
 
+        function copyApiLink() {
+            var link = "http://api.graphqlbook.store/graphql";
+            navigator.clipboard.writeText(link).then(function() {
+                var el = document.getElementById("apiLink");
+                el.textContent = "Copied!";
+                el.classList.add("copied");
+                setTimeout(function() {
+                    el.textContent = "api.graphqlbook.store/graphql";
+                    el.classList.remove("copied");
+                }, 2000);
+            });
+        }
+
+        var currentVulnIndex = 0;
+        var vulnCards = [];
+        var vulnDots = [];
+        
+        function initVulnSlideshow() {
+            vulnCards = document.querySelectorAll('.vuln-card');
+            vulnDots = document.querySelectorAll('.vuln-dot');
+            if (vulnCards.length > 0) {
+                currentVulnIndex = Math.floor(Math.random() * vulnCards.length);
+                updateVulnDisplay();
+                setInterval(rotateVulnCard, 4000);
+            }
+        }
+        
+        function rotateVulnCard() {
+            currentVulnIndex = (currentVulnIndex + 1) % vulnCards.length;
+            updateVulnDisplay();
+        }
+        
+        function showVulnCard(index) {
+            currentVulnIndex = index;
+            updateVulnDisplay();
+        }
+        
+        function updateVulnDisplay() {
+            vulnCards.forEach(function(card, i) {
+                card.classList.remove('active');
+            });
+            vulnDots.forEach(function(dot, i) {
+                dot.classList.remove('active');
+            });
+            if (vulnCards[currentVulnIndex]) {
+                vulnCards[currentVulnIndex].classList.add('active');
+            }
+            if (vulnDots[currentVulnIndex]) {
+                vulnDots[currentVulnIndex].classList.add('active');
+            }
+        }
+
         function logout() {
             token = "";
             localStorage.removeItem("token");
@@ -3230,6 +3515,8 @@ Authorization: Bearer <your-jwt-token></pre>
                 sidebar.classList.remove("active");
             }
         });
+
+        window.addEventListener('load', initVulnSlideshow);
     </script>
 </body>
 </html>

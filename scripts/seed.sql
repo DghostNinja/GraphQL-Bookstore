@@ -13,6 +13,8 @@ DELETE FROM audit_logs;
 DELETE FROM payment_transactions;
 DELETE FROM coupons;
 DELETE FROM coupon_usage;
+DELETE FROM coupon_usage;
+DELETE FROM hidden_books;
 DELETE FROM books;
 DELETE FROM categories;
 DELETE FROM authors;
@@ -50,6 +52,15 @@ INSERT INTO books (isbn, title, description, author_id, category_id, price, stoc
 ('9780735619678', 'Code Complete', 'A Practical Handbook of Software Construction', 2, 6, 39.99, 30, false, false),
 ('9780345391803', 'The Hitchhiker''s Guide to the Galaxy', 'A sci-fi comedy classic', 3, 3, 14.99, 50, true, true),
 ('9780345391802', 'The Restaurant at the End of the Universe', 'Second book in trilogy', 3, 3, 14.99, 45, false, false);
+
+-- Insert hidden books (for pro-level challenges)
+INSERT INTO hidden_books (book_key, isbn, title, description, author_id, category_id, price, stock_quantity, content, difficulty_level, hint_text) VALUES
+('quantum_cryptography', '9781593277501', 'Quantum Cryptography: The Next Frontier', 'Advanced quantum computing security', 2, 6, 299.99, 3, 'HIDDEN_CONTENT: Quantum key distribution protocols and post-quantum cryptography techniques. Contains classified research.', 'master', 'Look for patterns in the API rate limiting headers'),
+('zero_day_exploits', '9781593277502', 'Zero-Day Exploits: Offensive Security', 'Offensive security research', 2, 6, 499.99, 1, 'HIDDEN_CONTENT: Advanced buffer overflow techniques, kernel exploitation, and reverse engineering methodologies.', 'master', 'Check for timing attacks in authentication'),
+('ai_red_team', '9781593277503', 'AI Red Teaming: Advanced Adversarial ML', 'Adversarial machine learning', 2, 6, 349.99, 2, 'HIDDEN_CONTENT: Deep learning model extraction, adversarial examples, and model inversion attacks.', 'master', 'GraphQL batch queries bypass rate limits'),
+('blockchain_hacking', '9781593277504', 'Blockchain Hacking: DeFi Vulnerabilities', 'DeFi security research', 2, 6, 399.99, 2, 'HIDDEN_CONTENT: Smart contract exploitation, flash loan attacks, and oracle manipulation.', 'master', 'Look for second-order vulnerabilities'),
+('memory_forensics', '9781593277505', 'Advanced Memory Forensics', 'RAM analysis techniques', 2, 6, 279.99, 3, 'HIDDEN_CONTENT: Volatility framework mastery, malware detection in RAM, and incident response.', 'master', 'Check XML parsing for XXE'),
+('apt_analysis', '9781593277506', 'APT Analysis: Nation-State Threats', 'Advanced persistent threat research', 2, 6, 449.99, 1, 'HIDDEN_CONTENT: APT group tactics, techniques and procedures, and threat hunting methodologies.', 'master', 'WebSocket connections may leak data');
 
 -- Insert sample coupons
 INSERT INTO coupons (code, description, discount_type, discount_value, min_order_amount, usage_limit) VALUES

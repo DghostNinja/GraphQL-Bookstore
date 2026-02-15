@@ -68,6 +68,26 @@ CREATE TABLE IF NOT EXISTS books (
     review_count INTEGER DEFAULT 0,
     is_featured BOOLEAN DEFAULT false,
     is_bestseller BOOLEAN DEFAULT false,
+    is_hidden BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Hidden books table (for pro-level challenges)
+CREATE TABLE IF NOT EXISTS hidden_books (
+    id SERIAL PRIMARY KEY,
+    book_key VARCHAR(100) UNIQUE NOT NULL,
+    isbn VARCHAR(20) UNIQUE NOT NULL,
+    title VARCHAR(500) NOT NULL,
+    description TEXT,
+    author_id INTEGER REFERENCES authors(id),
+    category_id INTEGER REFERENCES categories(id),
+    price DECIMAL(10, 2) NOT NULL,
+    stock_quantity INTEGER DEFAULT 0,
+    content TEXT,
+    difficulty_level VARCHAR(20) DEFAULT 'expert',
+    hint_text TEXT,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -204,6 +224,8 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_books_category ON books(category_id);
 CREATE INDEX IF NOT EXISTS idx_books_author ON books(author_id);
 CREATE INDEX IF NOT EXISTS idx_books_isbn ON books(isbn);
+CREATE INDEX IF NOT EXISTS idx_books_hidden ON books(is_hidden) WHERE is_hidden = true;
+CREATE INDEX IF NOT EXISTS idx_hidden_books_key ON hidden_books(book_key);
 CREATE INDEX IF NOT EXISTS idx_reviews_user ON reviews(user_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_book ON reviews(book_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);

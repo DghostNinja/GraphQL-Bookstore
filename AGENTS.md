@@ -1,32 +1,48 @@
 # AGENTS.md - Codebase Guide for AI Agents
 
-## Build Commands
+## CRITICAL RULES
 
-### Primary Build
+### NEVER use git commands without explicit permission
+- NEVER run `git checkout`, `git restore`, `git reset`, or any git operations that modify the codebase
+- If something is broken, ASK the user how they want to proceed
+- Do not assume you can revert changes - the user may have local work they haven't pushed yet
+- Always ask before making any git operations
+
+## Quick Start
+
 ```bash
-# Build the full server with PostgreSQL, JWT, and CURL support
+# Clone and setup (installs deps, builds, sets up database)
+git clone <repo-url>
+cd GraphQL-Bookstore
+./build.sh
+
+# Run the server
+./bookstore-server
+```
+
+Server runs on http://localhost:4000/
+
+## Default Credentials
+| Username | Password | Role |
+|----------|----------|-------|
+| admin    | password123 | admin |
+| staff    | password123 | staff |
+| user     | password123 | user |
+
+## Manual Build (if needed)
+
+```bash
+# Build only
 g++ -std=c++17 -o bookstore-server src/main.cpp -lpq -ljwt -lcurl -lssl -lcrypto
 
-# Or use the build script
+# Or use build script
 ./build.sh
 ```
 
-### Database Setup
+## Testing
+
 ```bash
-# Initialize PostgreSQL database (requires postgres access)
-sudo -u postgres psql -f scripts/init_database.sql
-
-# Database name: bookstore_db
-# User: bookstore_user, Password: bookstore_password
-```
-
-### Running the Server
-```bash
-./bookstore-server
-
-# Server runs on port 4000
-# GraphQL Playground: http://localhost:4000/
-# GraphQL Endpoint: http://localhost:4000/graphql
+./test_api.sh
 ```
 
 ### Testing Commands
@@ -275,37 +291,72 @@ DB_CONN "dbname=bookstore_db user=bookstore_user password=bookstore_password hos
 | `bookReviews(bookId)` | Get reviews for a specific book | No |
 | `myReviews` | Get current user's reviews | Yes |
 | `webhooks` | Get user's registered webhooks | Yes |
-| `_internalUserSearch(username)` | Search users by username pattern (BOLA) | No |
-| `_fetchExternalResource(url)` | Fetch external resource by URL (SSRF) | No |
-| `_searchAdvanced(query)` | Advanced search with SQL injection vulnerability | No |
-| `_adminStats` | Admin statistics (no auth required!) | No |
-| `_adminAllOrders` | All orders (no auth required!) | No |
-| `_adminAllPayments` | All payment transactions (no auth required!) | No |
+| `_internalUserSearch(username)` | Internal user search | No |
+| `_fetchExternalResource(url)` | Fetch external resource by URL | No |
+| `_searchAdvanced(query)` | Advanced search | No |
+| `_adminStats` | Admin statistics | No |
+| `_adminAllOrders` | All orders | No |
+| `_adminAllPayments` | All payment transactions | No |
+| `_proInventory` | Pro-level books collection | No |
 
 ### Available Mutations
 | Mutation | Description | Auth Required |
 |----------|-------------|---------------|
 | `register(username, firstName, lastName, password)` | Register a new user | No |
 | `login(username, password)` | Login and get JWT token | No |
-| `updateProfile(...)` | Update user profile (mass assignment vulnerability) | Yes |
+| `updateProfile(...)` | Update user profile | Yes |
 | `addToCart(bookId, quantity)` | Add item to shopping cart | Yes |
 | `removeFromCart(bookId)` | Remove item from shopping cart | Yes |
 | `createOrder()` | Create order from cart | Yes |
-| `cancelOrder(orderId)` | Cancel an order (IDOR vulnerability) | Yes |
+| `cancelOrder(orderId)` | Cancel an order | Yes |
 | `createReview(bookId, rating, comment)` | Create a review | Yes |
-| `deleteReview(reviewId)` | Delete a review (IDOR vulnerability) | Yes |
+| `deleteReview(reviewId)` | Delete a review | Yes |
 | `registerWebhook(url, events, secret)` | Register a webhook URL | Yes |
-| `testWebhook(webhookId)` | Test a webhook (SSRF vulnerability) | Yes |
+| `testWebhook(webhookId)` | Test a webhook | Yes |
 
 ### Recent Features Added
 - **Shopping Cart System**: Full cart functionality with add/remove items
-- **Order Management**: Create orders from cart, cancel orders with IDOR vulnerability
-- **Review System**: Create and delete reviews with IDOR vulnerability
+- **Order Management**: Create orders from cart, cancel orders
+- **Review System**: Create and delete reviews
 - **Webhook System**: Register webhooks with SSRF via testWebhook
 - **Admin Queries**: Stats, orders, and payments accessible without auth
 - **SQL Injection**: `_searchAdvanced` query with direct SQL concatenation
 - **Rate Limiting**: IP-based rate limiting (100 requests/minute, 5-min block)
 - **API Documentation Page**: Beautiful glass-morphism landing page with query runner
+- **Hidden Pro Inventory**: `_proInventory` query reveals 6 hidden expert-level books
+- **Hidden Endpoints**: Additional hidden API endpoints for advanced security testing
+
+### Hidden Pro Books (via `_proInventory`)
+The server contains 6 hidden books with advanced security research content:
+
+| Book Key | Title | Difficulty | Hint |
+|----------|-------|------------|------|
+| quantum_cryptography | Quantum Cryptography: The Next Frontier | master | Look for patterns in the API rate limiting headers |
+| zero_day_exploits | Zero-Day Exploits: Offensive Security | master | Check for timing attacks in authentication |
+| ai_red_team | AI Red Teaming: Advanced Adversarial ML | master | GraphQL batch queries bypass rate limits |
+| blockchain_hacking | Blockchain Hacking: DeFi Vulnerabilities | master | Look for second-order vulnerabilities |
+| memory_forensics | Advanced Memory Forensics | master | Check XML parsing for XXE |
+| apt_analysis | APT Analysis: Nation-State Threats | master | WebSocket connections may leak data |
+
+### Hidden API Endpoints
+These endpoints provide advanced API functionality:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/webhooks/subscribe` | POST | Subscribe to webhook events |
+| `/api/batch` | POST | Batch GraphQL queries |
+| `/api/coupons/apply` | POST | Apply coupon codes |
+| `/api/debug/timing` | GET | Debug timing information |
+
+### Advanced Features
+The server contains additional advanced features for expert-level testing:
+
+1. **Timing Analysis**: Login response times differ based on username validity (25ms vs 50ms delay)
+2. **Second-Order Effects**: Review comments are logged and queried for analytics
+3. **XML Processing**: XML webhook subscription endpoint handles XML payloads
+4. **Batch Queries**: GraphQL batch queries for efficient data loading
+5. **Concurrent Operations**: Coupon application handles concurrent requests
+6. **Debug Endpoints**: Timing information available for debugging
 
 ### Rate Limiting
 The server includes built-in rate limiting to prevent abuse:
@@ -323,10 +374,17 @@ Rate limit configuration constants in `src/main.cpp`:
 ### API Documentation Page
 The landing page (`generateLandingHTML()` in `src/main.cpp`) provides:
 - Glass-morphism UI design with animated backgrounds
+- **API Link Bar**: Small glass icon with pulse animation and copyable link to `api.graphqlbook.store/graphql`
 - Query Runner panel for testing GraphQL queries
 - Login and Registration panels with JWT token storage
 - Quick examples and available endpoints grid
 - Click-to-load endpoint examples
+
+**API Link Bar Features:**
+- Glass-styled icon with green gradient and pulse animation effect
+- Clickable API URL that copies to clipboard when clicked
+- Shows "Copied!" feedback for 2 seconds after clicking
+- Styled with italic serif font for "Access the API at:" label
 
 **Query Runner Features:**
 - Textarea for entering GraphQL queries
