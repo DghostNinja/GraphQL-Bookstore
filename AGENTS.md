@@ -315,6 +315,10 @@ DB_CONN "dbname=bookstore_db user=bookstore_user password=bookstore_password hos
 | `testWebhook(webhookId)` | Test a webhook | Yes |
 
 ### Recent Features Added
+- **Field Selection**: All queries now return only requested fields (e.g., `{ books { id title } }` returns only id and title)
+- **JWT Enhancements**: Tokens now include `iat` (issued at) and `exp` (expires in 6 hours)
+- **Nested Author Field**: Books can include author details via `author { firstName lastName }`
+- **Authors Cache**: Authors are loaded at startup for nested queries
 - **Shopping Cart System**: Full cart functionality with add/remove items
 - **Order Management**: Create orders from cart, cancel orders
 - **Review System**: Create and delete reviews
@@ -379,6 +383,11 @@ The landing page (`generateLandingHTML()` in `src/main.cpp`) provides:
 - Login and Registration panels with JWT token storage
 - Quick examples and available endpoints grid
 - Click-to-load endpoint examples
+- Vulnerability chapter slideshow
+
+**NOTE**: No built-in GraphQL Playground. Use external tools like:
+- https://studio.apollographql.com/
+- Postman, Insomnia, curl, Burp Suite
 
 **API Link Bar Features:**
 - Glass-styled icon with green gradient and pulse animation effect

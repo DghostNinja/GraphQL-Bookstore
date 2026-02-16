@@ -614,10 +614,14 @@ bool isFieldRequested(const string& query, const string& fieldName) {
     string patternEnd = fieldName + "}";
     string patternEndParen = fieldName + ")";
     string patternEndColon = fieldName + ":";
+    string patternNewline = fieldName + "\n";
+    string patternTab = fieldName + "\t";
     return (query.find(pattern) != string::npos || 
             query.find(patternEnd) != string::npos ||
             query.find(patternEndParen) != string::npos ||
-            query.find(patternEndColon) != string::npos);
+            query.find(patternEndColon) != string::npos ||
+            query.find(patternNewline) != string::npos ||
+            query.find(patternTab) != string::npos);
 }
 
 string userToJson(const User& user, const string& query = "") {
@@ -2859,7 +2863,7 @@ string generateLandingHTML() {
             <div class="method-info">
                 <span class="method-badge method-post">POST</span> Queries & Mutations &nbsp;|&nbsp; 
                 <span class="method-badge method-get">GET</span> Queries only &nbsp;|&nbsp;
-                <span class="method-info-text">Use with GraphQL Playground, Postman, curl, etc.</span>
+                <span class="method-info-text">Use with online GraphQL tools, Postman, curl, etc.</span>
             </div>
         </div>
 
@@ -3239,15 +3243,15 @@ curl -X POST http://localhost:4000/graphql \
 
                     <div class="code-block-with-copy">
                         <div class="code-header">
-                            <div class="code-title">Online Playground</div>
+                            <div class="code-title">Online Tools</div>
                             <button class="copy-button" onclick="copyToClipboard('usage-playground')">Copy</button>
                         </div>
                         <div class="code-block">
                             <pre id="usage-playground">
 
-# Useonline services:
-# - https://graphql.org/playground/
+# Use external tools:
 # - https://studio.apollographql.com/
+# - Postman, Insomnia, curl
 
 # Endpoint: http://localhost:4000/graphql</pre>
                         </div>
@@ -3930,7 +3934,6 @@ int main() {
     cout << "  Security Learning Environment          " << endl;
     cout << "========================================" << endl;
     cout << "Starting server on port " << PORT << endl;
-    cout << "Access GraphQL Playground at: http://localhost:" << PORT << "/" << endl;
     cout << "GraphQL endpoint: http://localhost:" << PORT << "/graphql" << endl;
     cout << endl;
     cout << "⚠️  WARNING: This API contains intentional security vulnerabilities." << endl;
@@ -3974,8 +3977,7 @@ int main() {
         }
 
         if (isGetRequest) {
-            bool isPlaygroundRequest = (request.find("GET /graphql") != string::npos);
-            string html = isPlaygroundRequest ? generatePlaygroundHTML() : generateLandingHTML();
+            string html = generateLandingHTML();
             string response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/html\r\nContent-Length: " + to_string(html.length()) + "\r\n\r\n";
             response += html;
             send(clientSocket, response.c_str(), response.length(), 0);
@@ -4041,7 +4043,17 @@ int main() {
                             for (size_t i = valueStart + 1; i < body.length(); i++) {
                                 char c = body[i];
                                 if (escaped) {
-                                    if (c != '"') value += c;
+                                    if (c == 'n') {
+                                        value += '\n';
+                                    } else if (c == 't') {
+                                        value += '\t';
+                                    } else if (c == 'r') {
+                                        value += '\r';
+                                    } else if (c == '\\') {
+                                        value += '\\';
+                                    } else if (c != '"') {
+                                        value += c;
+                                    }
                                     escaped = false;
                                 } else if (c == '\\') {
                                     escaped = true;
