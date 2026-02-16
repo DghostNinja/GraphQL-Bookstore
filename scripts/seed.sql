@@ -13,13 +13,17 @@ DELETE FROM audit_logs;
 DELETE FROM payment_transactions;
 DELETE FROM coupons;
 DELETE FROM coupon_usage;
-DELETE FROM coupon_usage;
 DELETE FROM hidden_books;
 DELETE FROM books;
 DELETE FROM categories;
 DELETE FROM authors;
 DELETE FROM system_config;
 DELETE FROM users;
+
+-- Reset sequences to start from 1
+ALTER SEQUENCE authors_id_seq RESTART WITH 1;
+ALTER SEQUENCE categories_id_seq RESTART WITH 1;
+ALTER SEQUENCE books_id_seq RESTART WITH 1;
 
 -- Insert default users (plaintext passwords for educational server)
 INSERT INTO users (username, password_hash, first_name, last_name, role) VALUES

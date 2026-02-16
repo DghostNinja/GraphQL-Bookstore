@@ -57,6 +57,12 @@ struct Book {
     bool isActive;
 };
 
+struct Author {
+    int id;
+    string name;
+    string bio;
+};
+
 struct Review {
     int id;
     string userId;
@@ -115,6 +121,7 @@ struct Webhook {
 PGconn* dbConn = nullptr;
 map<string, User> usersCache;
 map<int, Book> booksCache;
+map<int, Author> authorsCache;
 map<int, Review> reviewsCache;
 map<string, vector<CartItem>> cartCache;
 map<string, Order> ordersCache;
@@ -277,6 +284,11 @@ string generateJWT(const User& user) {
     jwt_add_grant(jwt, "sub", user.id.c_str());
     jwt_add_grant(jwt, "username", user.username.c_str());
     jwt_add_grant(jwt, "role", user.role.c_str());
+    
+    time_t now = time(nullptr);
+    jwt_add_grant_int(jwt, "iat", now);
+    jwt_add_grant_int(jwt, "exp", now + 21600);
+    
     jwt_set_alg(jwt, JWT_ALG_HS256, (unsigned char*)JWT_SECRET, strlen(JWT_SECRET));
     
     char* token = jwt_encode_str(jwt);
@@ -407,6 +419,33 @@ void loadBooksCache() {
             book.isBestseller = (string(PQgetvalue(res, i, 12)) == "t");
             book.isActive = (string(PQgetvalue(res, i, 13)) == "t");
             booksCache[book.id] = book;
+        }
+    }
+    PQclear(res);
+}
+
+Author* getAuthorById(int authorId) {
+    auto it = authorsCache.find(authorId);
+    if (it != authorsCache.end()) {
+        return &it->second;
+    }
+    return nullptr;
+}
+
+void loadAuthorsCache() {
+    if (!checkDatabaseConnection()) {
+        return;
+    }
+    PGresult* res = PQexec(dbConn, "SELECT id, name, bio FROM authors");
+    
+    if (PQresultStatus(res) == PGRES_TUPLES_OK) {
+        int rows = PQntuples(res);
+        for (int i = 0; i < rows; i++) {
+            Author author;
+            author.id = atoi(PQgetvalue(res, i, 0));
+            author.name = PQgetvalue(res, i, 1) ? PQgetvalue(res, i, 1) : "";
+            author.bio = PQgetvalue(res, i, 2) ? PQgetvalue(res, i, 2) : "";
+            authorsCache[author.id] = author;
         }
     }
     PQclear(res);
@@ -569,122 +608,365 @@ string escapeJson(const string& input) {
     return result;
 }
 
-string userToJson(const User& user) {
-    stringstream ss;
-    ss << "{";
-    ss << "\"id\":\"" << user.id << "\",";
-    ss << "\"username\":\"" << user.username << "\",";
-    ss << "\"firstName\":\"" << user.firstName << "\",";
-    ss << "\"lastName\":\"" << user.lastName << "\",";
-    ss << "\"role\":\"" << user.role << "\",";
-    ss << "\"isActive\":" << (user.isActive ? "true" : "false") << ",";
-    ss << "\"phone\":\"" << user.phone << "\",";
-    ss << "\"address\":\"" << escapeJson(user.address) << "\",";
-    ss << "\"city\":\"" << user.city << "\",";
-    ss << "\"state\":\"" << user.state << "\",";
-    ss << "\"zipCode\":\"" << user.zipCode << "\",";
-    ss << "\"country\":\"" << user.country << "\"";
-    ss << "}";
-    return ss.str();
+bool isFieldRequested(const string& query, const string& fieldName) {
+    if (query.empty()) return true;
+    string pattern = fieldName + " ";
+    string patternEnd = fieldName + "}";
+    string patternEndParen = fieldName + ")";
+    string patternEndColon = fieldName + ":";
+    return (query.find(pattern) != string::npos || 
+            query.find(patternEnd) != string::npos ||
+            query.find(patternEndParen) != string::npos ||
+            query.find(patternEndColon) != string::npos);
 }
 
-string bookToJson(const Book& book) {
+string userToJson(const User& user, const string& query = "") {
     stringstream ss;
     ss << "{";
-    ss << "\"id\":" << book.id << ",";
-    ss << "\"isbn\":\"" << book.isbn << "\",";
-    ss << "\"title\":\"" << escapeJson(book.title) << "\",";
-    ss << "\"description\":\"" << escapeJson(book.description) << "\",";
-    ss << "\"authorId\":" << book.authorId << ",";
-    ss << "\"categoryId\":" << book.categoryId << ",";
-    ss << "\"price\":" << book.price << ",";
-    ss << "\"salePrice\":" << book.salePrice << ",";
-    ss << "\"stockQuantity\":" << book.stockQuantity << ",";
-    ss << "\"ratingAverage\":" << book.ratingAverage << ",";
-    ss << "\"reviewCount\":" << book.reviewCount << ",";
-    ss << "\"isFeatured\":" << (book.isFeatured ? "true" : "false") << ",";
-    ss << "\"isBestseller\":" << (book.isBestseller ? "true" : "false") << ",";
-    ss << "\"isActive\":" << (book.isActive ? "true" : "false");
-    ss << "}";
-    return ss.str();
-}
-
-string cartItemToJson(const CartItem& item) {
-    stringstream ss;
-    ss << "{";
-    ss << "\"id\":" << item.id << ",";
-    ss << "\"cartId\":\"" << item.cartId << "\",";
-    ss << "\"bookId\":" << item.bookId << ",";
-    ss << "\"quantity\":" << item.quantity << ",";
-    ss << "\"price\":" << item.price;
-    ss << "}";
-    return ss.str();
-}
-
-string orderItemToJson(const OrderItem& item) {
-    stringstream ss;
-    ss << "{";
-    ss << "\"id\":" << item.id << ",";
-    ss << "\"orderId\":\"" << item.orderId << "\",";
-    ss << "\"bookId\":" << item.bookId << ",";
-    ss << "\"bookTitle\":\"" << escapeJson(item.bookTitle) << "\",";
-    ss << "\"bookIsbn\":\"" << item.bookIsbn << "\",";
-    ss << "\"quantity\":" << item.quantity << ",";
-    ss << "\"unitPrice\":" << item.unitPrice << ",";
-    ss << "\"totalPrice\":" << item.totalPrice;
-    ss << "}";
-    return ss.str();
-}
-
-string orderToJson(const Order& order) {
-    stringstream ss;
-    ss << "{";
-    ss << "\"id\":\"" << order.id << "\",";
-    ss << "\"userId\":\"" << order.userId << "\",";
-    ss << "\"orderNumber\":\"" << order.orderNumber << "\",";
-    ss << "\"status\":\"" << order.status << "\",";
-    ss << "\"subtotal\":" << order.subtotal << ",";
-    ss << "\"taxAmount\":" << order.taxAmount << ",";
-    ss << "\"shippingAmount\":" << order.shippingAmount << ",";
-    ss << "\"discountAmount\":" << order.discountAmount << ",";
-    ss << "\"totalAmount\":" << order.totalAmount << ",";
-    ss << "\"shippingAddress\":\"" << escapeJson(order.shippingAddress) << "\",";
-    ss << "\"billingAddress\":\"" << escapeJson(order.billingAddress) << "\",";
-    ss << "\"paymentStatus\":\"" << order.paymentStatus << "\",";
-    ss << "\"createdAt\":\"" << order.createdAt << "\",";
-    ss << "\"items\":[";
-    for (size_t i = 0; i < order.items.size(); i++) {
-        if (i > 0) ss << ",";
-        ss << orderItemToJson(order.items[i]);
+    bool first = true;
+    
+    if (query.empty() || isFieldRequested(query, "id")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"id\":\"" << user.id << "\"";
     }
-    ss << "]";
+    if (query.empty() || isFieldRequested(query, "username")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"username\":\"" << user.username << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "firstName")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"firstName\":\"" << user.firstName << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "lastName")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"lastName\":\"" << user.lastName << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "role")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"role\":\"" << user.role << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "isActive")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"isActive\":" << (user.isActive ? "true" : "false");
+    }
+    if (query.empty() || isFieldRequested(query, "phone")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"phone\":\"" << user.phone << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "address")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"address\":\"" << escapeJson(user.address) << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "city")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"city\":\"" << user.city << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "state")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"state\":\"" << user.state << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "zipCode")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"zipCode\":\"" << user.zipCode << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "country")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"country\":\"" << user.country << "\"";
+    }
     ss << "}";
     return ss.str();
 }
 
-string reviewToJson(const Review& review) {
+string bookToJson(const Book& book, const string& query = "") {
     stringstream ss;
     ss << "{";
-    ss << "\"id\":" << review.id << ",";
-    ss << "\"userId\":\"" << review.userId << "\",";
-    ss << "\"bookId\":" << review.bookId << ",";
-    ss << "\"rating\":" << review.rating << ",";
-    ss << "\"comment\":\"" << escapeJson(review.comment) << "\",";
-    ss << "\"isVerifiedPurchase\":" << (review.isVerifiedPurchase ? "true" : "false") << ",";
-    ss << "\"isApproved\":" << (review.isApproved ? "true" : "false") << ",";
-    ss << "\"createdAt\":\"" << review.createdAt << "\"";
+    bool first = true;
+    
+    if (query.empty() || isFieldRequested(query, "id")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"id\":" << book.id;
+    }
+    if (query.empty() || isFieldRequested(query, "isbn")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"isbn\":\"" << book.isbn << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "title")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"title\":\"" << escapeJson(book.title) << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "description")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"description\":\"" << escapeJson(book.description) << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "authorId")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"authorId\":" << book.authorId;
+    }
+    if (query.empty() || isFieldRequested(query, "categoryId")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"categoryId\":" << book.categoryId;
+    }
+    if (query.empty() || isFieldRequested(query, "price")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"price\":" << book.price;
+    }
+    if (query.empty() || isFieldRequested(query, "salePrice")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"salePrice\":" << book.salePrice;
+    }
+    if (query.empty() || isFieldRequested(query, "stockQuantity")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"stockQuantity\":" << book.stockQuantity;
+    }
+    if (query.empty() || isFieldRequested(query, "ratingAverage")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"ratingAverage\":" << book.ratingAverage;
+    }
+    if (query.empty() || isFieldRequested(query, "reviewCount")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"reviewCount\":" << book.reviewCount;
+    }
+    if (query.empty() || isFieldRequested(query, "isFeatured")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"isFeatured\":" << (book.isFeatured ? "true" : "false");
+    }
+    if (query.empty() || isFieldRequested(query, "isBestseller")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"isBestseller\":" << (book.isBestseller ? "true" : "false");
+    }
+    if (query.empty() || isFieldRequested(query, "isActive")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"isActive\":" << (book.isActive ? "true" : "false");
+    }
+    if (query.empty() || isFieldRequested(query, "author")) {
+        Author* author = getAuthorById(book.authorId);
+        if (author) {
+            if (!first) ss << ","; first = false;
+            ss << "\"author\":{";
+            bool authorFirst = true;
+            if (query.empty() || isFieldRequested(query, "firstName")) {
+                if (!authorFirst) ss << ","; authorFirst = false;
+                size_t spacePos = author->name.find(' ');
+                if (spacePos != string::npos) {
+                    ss << "\"firstName\":\"" << escapeJson(author->name.substr(0, spacePos)) << "\"";
+                    ss << ",\"lastName\":\"" << escapeJson(author->name.substr(spacePos + 1)) << "\"";
+                } else {
+                    ss << "\"firstName\":\"" << escapeJson(author->name) << "\",\"lastName\":\"\"";
+                }
+            }
+            ss << "}";
+        }
+    }
     ss << "}";
     return ss.str();
 }
 
-string webhookToJson(const Webhook& webhook) {
+string cartItemToJson(const CartItem& item, const string& query = "") {
     stringstream ss;
     ss << "{";
-    ss << "\"id\":\"" << webhook.id << "\",";
-    ss << "\"userId\":\"" << webhook.userId << "\",";
-    ss << "\"url\":\"" << webhook.url << "\",";
-    ss << "\"secret\":\"" << webhook.secret << "\",";
-    ss << "\"isActive\":" << (webhook.isActive ? "true" : "false");
+    bool first = true;
+    
+    if (query.empty() || isFieldRequested(query, "id")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"id\":" << item.id;
+    }
+    if (query.empty() || isFieldRequested(query, "cartId")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"cartId\":\"" << item.cartId << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "bookId")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"bookId\":" << item.bookId;
+    }
+    if (query.empty() || isFieldRequested(query, "quantity")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"quantity\":" << item.quantity;
+    }
+    if (query.empty() || isFieldRequested(query, "price")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"price\":" << item.price;
+    }
+    ss << "}";
+    return ss.str();
+}
+
+string orderItemToJson(const OrderItem& item, const string& query = "") {
+    stringstream ss;
+    ss << "{";
+    bool first = true;
+    
+    if (query.empty() || isFieldRequested(query, "id")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"id\":" << item.id;
+    }
+    if (query.empty() || isFieldRequested(query, "orderId")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"orderId\":\"" << item.orderId << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "bookId")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"bookId\":" << item.bookId;
+    }
+    if (query.empty() || isFieldRequested(query, "bookTitle")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"bookTitle\":\"" << escapeJson(item.bookTitle) << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "bookIsbn")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"bookIsbn\":\"" << item.bookIsbn << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "quantity")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"quantity\":" << item.quantity;
+    }
+    if (query.empty() || isFieldRequested(query, "unitPrice")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"unitPrice\":" << item.unitPrice;
+    }
+    if (query.empty() || isFieldRequested(query, "totalPrice")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"totalPrice\":" << item.totalPrice;
+    }
+    ss << "}";
+    return ss.str();
+}
+
+string orderToJson(const Order& order, const string& query = "") {
+    stringstream ss;
+    ss << "{";
+    bool first = true;
+    
+    if (query.empty() || isFieldRequested(query, "id")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"id\":\"" << order.id << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "userId")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"userId\":\"" << order.userId << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "orderNumber")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"orderNumber\":\"" << order.orderNumber << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "status")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"status\":\"" << order.status << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "subtotal")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"subtotal\":" << order.subtotal;
+    }
+    if (query.empty() || isFieldRequested(query, "taxAmount")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"taxAmount\":" << order.taxAmount;
+    }
+    if (query.empty() || isFieldRequested(query, "shippingAmount")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"shippingAmount\":" << order.shippingAmount;
+    }
+    if (query.empty() || isFieldRequested(query, "discountAmount")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"discountAmount\":" << order.discountAmount;
+    }
+    if (query.empty() || isFieldRequested(query, "totalAmount")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"totalAmount\":" << order.totalAmount;
+    }
+    if (query.empty() || isFieldRequested(query, "shippingAddress")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"shippingAddress\":\"" << escapeJson(order.shippingAddress) << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "billingAddress")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"billingAddress\":\"" << escapeJson(order.billingAddress) << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "paymentStatus")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"paymentStatus\":\"" << order.paymentStatus << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "createdAt")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"createdAt\":\"" << order.createdAt << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "items")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"items\":[";
+        for (size_t i = 0; i < order.items.size(); i++) {
+            if (i > 0) ss << ",";
+            ss << orderItemToJson(order.items[i], query);
+        }
+        ss << "]";
+    }
+    ss << "}";
+    return ss.str();
+}
+
+string reviewToJson(const Review& review, const string& query = "") {
+    stringstream ss;
+    ss << "{";
+    bool first = true;
+    
+    if (query.empty() || isFieldRequested(query, "id")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"id\":" << review.id;
+    }
+    if (query.empty() || isFieldRequested(query, "userId")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"userId\":\"" << review.userId << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "bookId")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"bookId\":" << review.bookId;
+    }
+    if (query.empty() || isFieldRequested(query, "rating")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"rating\":" << review.rating;
+    }
+    if (query.empty() || isFieldRequested(query, "comment")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"comment\":\"" << escapeJson(review.comment) << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "isVerifiedPurchase")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"isVerifiedPurchase\":" << (review.isVerifiedPurchase ? "true" : "false");
+    }
+    if (query.empty() || isFieldRequested(query, "isApproved")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"isApproved\":" << (review.isApproved ? "true" : "false");
+    }
+    if (query.empty() || isFieldRequested(query, "createdAt")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"createdAt\":\"" << review.createdAt << "\"";
+    }
+    ss << "}";
+    return ss.str();
+}
+
+string webhookToJson(const Webhook& webhook, const string& query = "") {
+    stringstream ss;
+    ss << "{";
+    bool first = true;
+    
+    if (query.empty() || isFieldRequested(query, "id")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"id\":\"" << webhook.id << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "userId")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"userId\":\"" << webhook.userId << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "url")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"url\":\"" << webhook.url << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "secret")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"secret\":\"" << webhook.secret << "\"";
+    }
+    if (query.empty() || isFieldRequested(query, "isActive")) {
+        if (!first) ss << ","; first = false;
+        ss << "\"isActive\":" << (webhook.isActive ? "true" : "false");
+    }
     ss << "}";
     return ss.str();
 }
@@ -805,7 +1087,7 @@ string handleQuery(const string& query, const User& currentUser) {
         (query.find("me") != string::npos && query.find("name") == string::npos && query.find("__schema") == string::npos)) {
         if (!currentUser.id.empty()) {
             if (!firstField) response << ",";
-            response << "\"me\":" << userToJson(currentUser);
+            response << "\"me\":" << userToJson(currentUser, query);
             firstField = false;
         } else {
             if (!firstField) response << ",";
@@ -820,7 +1102,7 @@ string handleQuery(const string& query, const User& currentUser) {
         Book* book = getBookById(bookId);
         if (book) {
             if (!firstField) response << ",";
-            response << "\"book\":" << bookToJson(*book);
+            response << "\"book\":" << bookToJson(*book, query);
             firstField = false;
         } else {
             if (!firstField) response << ",";
@@ -838,7 +1120,7 @@ string handleQuery(const string& query, const User& currentUser) {
         response << "\"books\":[";
         for (size_t i = 0; i < books.size(); i++) {
             if (i > 0) response << ",";
-            response << bookToJson(books[i]);
+            response << bookToJson(books[i], query);
         }
         response << "]";
         firstField = false;
@@ -852,7 +1134,7 @@ string handleQuery(const string& query, const User& currentUser) {
         for (auto& pair : usersCache) {
             if (usernamePattern.empty() || pair.second.username.find(usernamePattern) != string::npos) {
                 if (!firstUser) response << ",";
-                response << userToJson(pair.second);
+                response << userToJson(pair.second, query);
                 firstUser = false;
             }
         }
@@ -900,20 +1182,27 @@ string handleQuery(const string& query, const User& currentUser) {
 
         if (!firstField) response << ",";
         response << "\"cart\":{";
-        response << "\"userId\":\"" << currentUser.id << "\",";
-        response << "\"items\":[";
-
-        bool firstItem = true;
-        for (auto& pair : cartCache) {
-            if (pair.first == cartId) {
-                for (const auto& item : pair.second) {
-                    if (!firstItem) response << ",";
-                    response << cartItemToJson(item);
-                    firstItem = false;
+        if (query.empty() || isFieldRequested(query, "id")) {
+            if (!firstField) response << ",";
+            response << "\"id\":\"" << cartId << "\"";
+        }
+        if (query.empty() || isFieldRequested(query, "userId")) {
+            response << "\"userId\":\"" << currentUser.id << "\",";
+        }
+        if (query.empty() || isFieldRequested(query, "items")) {
+            response << "\"items\":[";
+            bool firstItem = true;
+            for (auto& pair : cartCache) {
+                if (pair.first == cartId) {
+                    for (const auto& item : pair.second) {
+                        if (!firstItem) response << ",";
+                        response << cartItemToJson(item, query);
+                        firstItem = false;
+                    }
                 }
             }
+            response << "]";
         }
-        response << "]";
         response << "}";
         firstField = false;
     }
@@ -925,7 +1214,7 @@ string handleQuery(const string& query, const User& currentUser) {
         for (auto& pair : ordersCache) {
             if (pair.second.userId == currentUser.id) {
                 if (!firstOrder) response << ",";
-                response << orderToJson(pair.second);
+                response << orderToJson(pair.second, query);
                 firstOrder = false;
             }
         }
@@ -942,7 +1231,7 @@ string handleQuery(const string& query, const User& currentUser) {
         for (auto& pair : reviewsCache) {
             if (pair.second.bookId == bookId) {
                 if (!firstReview) response << ",";
-                response << reviewToJson(pair.second);
+                response << reviewToJson(pair.second, query);
                 firstReview = false;
             }
         }
@@ -957,7 +1246,7 @@ string handleQuery(const string& query, const User& currentUser) {
         for (auto& pair : reviewsCache) {
             if (pair.second.userId == currentUser.id) {
                 if (!firstReview) response << ",";
-                response << reviewToJson(pair.second);
+                response << reviewToJson(pair.second, query);
                 firstReview = false;
             }
         }
@@ -972,7 +1261,7 @@ string handleQuery(const string& query, const User& currentUser) {
         for (auto& pair : webhooksCache) {
             if (pair.second.userId == currentUser.id) {
                 if (!firstWebhook) response << ",";
-                response << webhookToJson(pair.second);
+                response << webhookToJson(pair.second, query);
                 firstWebhook = false;
             }
         }
@@ -1010,7 +1299,7 @@ string handleQuery(const string& query, const User& currentUser) {
         bool firstOrder = true;
         for (auto& pair : ordersCache) {
             if (!firstOrder) response << ",";
-            response << orderToJson(pair.second);
+            response << orderToJson(pair.second, query);
             firstOrder = false;
         }
         response << "]";
@@ -1072,7 +1361,7 @@ string handleQuery(const string& query, const User& currentUser) {
                 book.price = atof(PQgetvalue(res, i, 6));
                 book.salePrice = PQgetvalue(res, i, 7) ? atof(PQgetvalue(res, i, 7)) : 0;
                 book.stockQuantity = atoi(PQgetvalue(res, i, 8));
-                response << bookToJson(book);
+                response << bookToJson(book, query);
             }
         }
         response << "]";
@@ -1128,7 +1417,7 @@ string handleMutation(const string& query, User& currentUser) {
                     response << "\"success\":true,";
                     response << "\"message\":\"Registration successful\",";
                     response << "\"token\":\"" << token << "\",";
-                    response << "\"user\":" << userToJson(newUser);
+                    response << "\"user\":" << userToJson(newUser, query);
                     response << "}";
                     firstField = false;
                 } else {
@@ -1180,7 +1469,7 @@ string handleMutation(const string& query, User& currentUser) {
                 response << "\"success\":true,";
                 response << "\"message\":\"Login successful\",";
                 response << "\"token\":\"" << token << "\",";
-                response << "\"user\":" << userToJson(*user);
+                response << "\"user\":" << userToJson(*user, query);
                 response << "}";
                 firstField = false;
             } else {
@@ -1224,7 +1513,7 @@ string handleMutation(const string& query, User& currentUser) {
         }
 
         if (!firstField) response << ",";
-        response << "\"updateProfile\":" << userToJson(currentUser);
+        response << "\"updateProfile\":" << userToJson(currentUser, query);
         firstField = false;
     }
 
@@ -3585,6 +3874,7 @@ int main() {
     }
 
     loadUsersCache();
+    loadAuthorsCache();
     loadBooksCache();
     loadCartCache();
     loadOrdersCache();
@@ -3592,6 +3882,7 @@ int main() {
     loadWebhooksCache();
 
     cout << "Loaded " << usersCache.size() << " users from database" << endl;
+    cout << "Loaded " << authorsCache.size() << " authors from database" << endl;
     cout << "Loaded " << booksCache.size() << " books from database" << endl;
     cout << "Loaded " << cartCache.size() << " carts from database" << endl;
     cout << "Loaded " << ordersCache.size() << " orders from database" << endl;
@@ -3707,7 +3998,7 @@ int main() {
                 continue;
             }
 
-            cerr << "[REQUEST] POST /graphql received, buffer size: " << bytesReceived << endl;
+            cout << "[REQUEST] POST /graphql received, buffer size: " << bytesReceived << endl;
 
             string authHeaderStr = "";
             size_t authPos = request.find("Authorization:");
@@ -3728,13 +4019,13 @@ int main() {
 
             size_t headerEnd = request.find("\r\n\r\n");
             if (headerEnd == string::npos) headerEnd = request.find("\n\n");
-            cerr << "[REQUEST] headerEnd: " << (headerEnd == string::npos ? "not found" : to_string(headerEnd)) << endl;
+            cout << "[REQUEST] headerEnd: " << (headerEnd == string::npos ? "not found" : to_string(headerEnd)) << endl;
 
             string queryStr = "";
 
             if (headerEnd != string::npos) {
                 string body = request.substr(headerEnd + 4);
-                cerr << "[REQUEST] Body raw: " << body.substr(0, min((size_t)500, body.length())) << endl;
+                cout << "[REQUEST] Body raw: " << body.substr(0, min((size_t)500, body.length())) << endl;
 
                 size_t queryPos = body.find("\"query\"");
                 if (queryPos == string::npos) queryPos = body.find("query");
@@ -3761,17 +4052,18 @@ int main() {
                                 }
                             }
                             queryStr = value;
-                            cerr << "[REQUEST] Extracted query: " << queryStr.substr(0, min((size_t)200, queryStr.length())) << endl;
+                            cout << "[REQUEST] Extracted query: " << queryStr.substr(0, min((size_t)200, queryStr.length())) << endl;
                         }
                     }
                 }
             }
 
             bool isMutation = (queryStr.find("mutation {") != string::npos || queryStr.find("mutation(") != string::npos);
-            cerr << "[REQUEST] isMutation: " << (isMutation ? "true" : "false") << endl;
+            cout << "[REQUEST] isMutation: " << (isMutation ? "true" : "false") << endl;
 
             string responseBody = handleRequest(queryStr, currentUser, isMutation);
-            cerr << "[REQUEST] Response: " << responseBody << endl;
+
+            cout << "[REQUEST] Response: " << responseBody << endl;
 
             string response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: Content-Type, Authorization\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nContent-Type: application/json\r\nContent-Length: " +
                 to_string(responseBody.length()) + "\r\nX-Content-Type-Options: nosniff\r\n\r\n" + responseBody;
