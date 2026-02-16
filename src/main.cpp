@@ -3109,64 +3109,28 @@ string generateLandingHTML() {
                     
                     <div class="code-block-with-copy">
                         <div class="code-header">
-                            <div class="code-title">Setup</div>
+                            <div class="code-title">Quick Setup</div>
                             <button class="copy-button" onclick="copyToClipboard('local-setup')">Copy</button>
                         </div>
                         <div class="code-block">
-                            <pre id="local-setup"># Install dependencies:
-sudo apt update
-sudo apt install build-essential libpq-dev libjwt-dev libcurl4-openssl-dev postgresql
-
-# Clone and build:
+                            <pre id="local-setup"># Clone and setup:
 git clone <repo-url>
 cd GraphQL-Bookstore
-g++ -std=c++17 -o bookstore-server src/main.cpp -lpq -ljwt -lcurl -lssl -lcrypto
+./build.sh
 
-# Run:
+# Run the server:
 ./bookstore-server</pre>
                         </div>
                     </div>
 
-                    <div class="code-block-with-copy">
-                        <div class="code-header">
-                            <div class="code-title">Database</div>
-                            <button class="copy-button" onclick="copyToClipboard('local-db')">Copy</button>
-                        </div>
-                        <div class="code-block">
-                            <pre id="local-db"># Create database:
-sudo -u postgres psql -c "CREATE DATABASE bookstore_db;"
-sudo -u postgres psql -c "CREATE USER bookstore_user WITH PASSWORD 'bookstore_password';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE bookstore_db TO bookstore_user;"
-
-# Initialize:
-sudo -u postgres psql -d bookstore_db -f scripts/init_database.sql
-sudo -u postgres psql -d bookstore_db -f sample_data.sql</pre>
-                        </div>
-                    </div>
-
-                    <div class="code-block-with-copy">
-                        <div class="code-header">
-                            <div class="code-title">No sudo</div>
-                            <button class="copy-button" onclick="copyToClipboard('local-nosudo')">Copy</button>
-                        </div>
-                        <div class="code-block">
-                            <pre id="local-nosudo"># Initialize PostgreSQL:
-mkdir -p ~/tmp/postgres
-/usr/lib/postgresql/16/bin/initdb -D ~/tmp/postgres/data -U $USER
-echo "port = 5433" >> ~/tmp/postgres/data/postgresql.conf
-/usr/lib/postgresql/16/bin/pg_ctl -D ~/tmp/postgres/data -l ~/tmp/postgres/logfile -o "-p 5433 -k /tmp" start
-
-# Create database:
-/usr/lib/postgresql/16/bin/createdb -h localhost -p 5433 bookstore_db
-/usr/lib/postgresql/16/bin/createuser -h localhost -p 5433 -s $USER
-/usr/lib/postgresql/16/bin/psql -h localhost -p 5433 -d bookstore_db -f scripts/init_database.sql
-
-# Run:
-export DATABASE_URL="postgresql://$USER@localhost:5433/bookstore_db"
-./bookstore-server</pre>
-                        </div>
-                    </div>
-                </div>
+                    <p style="color: rgba(255,255,255,0.6); margin-top: 15px;">
+                        The build script automatically installs dependencies, builds the server, sets up the database, and loads seed data.
+                    </p>
+                    
+                    <p style="color: rgba(255,255,255,0.6);">
+                        <strong>Server:</strong> http://localhost:4000/<br>
+                        <strong>Endpoint:</strong> http://localhost:4000/graphql
+                    </p>
                 </div>
 
                 <!-- Docker Installation Section -->
@@ -3760,6 +3724,12 @@ Authorization: Bearer <your-jwt-token></pre>
             if (activeItem) {
                 activeItem.classList.add("active");
             }
+            
+            // Close sidebar after selection
+            var sidebar = document.getElementById("sidebar");
+            var overlay = document.getElementById("sidebarOverlay");
+            if (sidebar) sidebar.classList.remove("active");
+            if (overlay) overlay.classList.remove("active");
         }
 
         function copyToClipboard(elementId) {
