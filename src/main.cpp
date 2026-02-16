@@ -3084,17 +3084,17 @@ string generateLandingHTML() {
                 <div class="endpoint-card" onclick="setQuery(6)">
                     <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
                     <div class="endpoint-name">_searchAdvanced</div>
-                    <div class="endpoint-desc">SQL injection test</div>
+                    <div class="endpoint-desc">Advanced book search</div>
                 </div>
                 <div class="endpoint-card" onclick="setQuery(7)">
                     <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
                     <div class="endpoint-name">_internalUserSearch</div>
-                    <div class="endpoint-desc">Search any user by username</div>
+                    <div class="endpoint-desc">Search users by username</div>
                 </div>
                 <div class="endpoint-card" onclick="setQuery(16)">
                     <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
                     <div class="endpoint-name">_fetchExternalResource</div>
-                    <div class="endpoint-desc">SSRF test endpoint</div>
+                    <div class="endpoint-desc">Fetch external URL content</div>
                 </div>
             </div>
         </div>
@@ -3125,7 +3125,7 @@ string generateLandingHTML() {
                 <div class="endpoint-card" onclick="setQuery(12)">
                     <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
                     <div class="endpoint-name">cancelOrder</div>
-                    <div class="endpoint-desc">IDOR test</div>
+                    <div class="endpoint-desc">Cancel order</div>
                 </div>
                 <div class="endpoint-card" onclick="setQuery(13)">
                     <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
@@ -3135,12 +3135,12 @@ string generateLandingHTML() {
                 <div class="endpoint-card" onclick="setQuery(14)">
                     <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
                     <div class="endpoint-name">deleteReview</div>
-                    <div class="endpoint-desc">IDOR test</div>
+                    <div class="endpoint-desc">Delete review</div>
                 </div>
                 <div class="endpoint-card" onclick="setQuery(15)">
                     <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
                     <div class="endpoint-name">updateProfile</div>
-                    <div class="endpoint-desc">Mass assignment</div>
+                    <div class="endpoint-desc">Update user profile</div>
                 </div>
                 <div class="endpoint-card" onclick="setQuery(17)">
                     <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
@@ -3150,7 +3150,7 @@ string generateLandingHTML() {
                 <div class="endpoint-card" onclick="setQuery(18)">
                     <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
                     <div class="endpoint-name">testWebhook</div>
-                    <div class="endpoint-desc">SSRF test</div>
+                    <div class="endpoint-desc">Test webhook endpoint</div>
                 </div>
             </div>
         </div>

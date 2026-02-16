@@ -324,11 +324,23 @@ DB_CONN "dbname=bookstore_db user=bookstore_user password=bookstore_password hos
 - **Review System**: Create and delete reviews
 - **Webhook System**: Register webhooks with SSRF via testWebhook
 - **Admin Queries**: Stats, orders, and payments accessible without auth
-- **SQL Injection**: `_searchAdvanced` query with direct SQL concatenation
 - **Rate Limiting**: IP-based rate limiting (100 requests/minute, 5-min block)
 - **API Documentation Page**: Beautiful glass-morphism landing page with query runner
 - **Hidden Pro Inventory**: `_proInventory` query reveals 6 hidden expert-level books
 - **Hidden Endpoints**: Additional hidden API endpoints for advanced security testing
+- **Pro Vulnerabilities**: 6 additional expert-level security vulnerabilities
+
+### Hidden Pro Vulnerabilities
+The server contains 6 hidden expert-level vulnerabilities:
+
+| Query | Description |
+|-------|-------------|
+| `_batchQuery` | GraphQL batch queries bypass rate limiting |
+| `_processXML` | XXE vulnerability in XML processing |
+| `_applyCouponRace` | Race condition in coupon application |
+| `_jwtAlgorithmConfusion` | JWT algorithm confusion attack |
+| `_cachePoison` | HTTP cache poisoning via headers |
+| `_deepRecursion` | Deep recursion attack via nested queries |
 
 ### Hidden Pro Books (via `_proInventory`)
 The server contains 6 hidden books with advanced security research content:
