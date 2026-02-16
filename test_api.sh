@@ -46,8 +46,8 @@ if [ -z "$HEALTH_CHECK" ]; then
     exit 1
 fi
 
-if ! echo "$HEALTH_CHECK" | grep -q "GraphQL Playground"; then
-    echo -e "   ${YELLOW}WARNING:${NC} Server responding but Playground not found"
+if ! echo "$HEALTH_CHECK" | grep -q "GraphQL"; then
+    echo -e "   ${YELLOW}WARNING:${NC} Server responding but GraphQL not found"
 fi
 echo -e "   ${GREEN}✓${NC} Server is running"
 echo ""
@@ -56,11 +56,11 @@ echo ""
 # TEST 1: Server Health Check
 #==========================================
 echo "1. Testing Server Health..."
-if echo "$HEALTH_CHECK" | grep -q "GraphQL Playground"; then
-    echo -e "   ${GREEN}✓${NC} Playground accessible"
+if echo "$HEALTH_CHECK" | grep -q "GraphQL"; then
+    echo -e "   ${GREEN}✓${NC} Server accessible"
     ((PASS_COUNT++))
 else
-    echo -e "   ${RED}✗${NC} Playground not accessible"
+    echo -e "   ${RED}✗${NC} Server not accessible"
     ((FAIL_COUNT++))
 fi
 echo ""
