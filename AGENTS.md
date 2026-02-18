@@ -3,7 +3,7 @@
 ## CRITICAL RULES
 
 ### NEVER use git commands without explicit permission
-- NEVER run `git checkout`, `git restore`, `git reset`, or any git operations that modify the codebase
+- NEVER run `git checkout`, `git restore`, `revert`, `reset`, or any git operations that modify the codebase
 - If something is broken, ASK the user how they want to proceed
 - Do not assume you can revert changes - the user may have local work they haven't pushed yet
 - Always ask before making any git operations
@@ -18,6 +18,12 @@ cd GraphQL-Bookstore
 
 # Run the server
 ./bookstore-server
+```
+
+### Rebuilding the Server
+**IMPORTANT**: After making any changes to the C++ source code (`src/main.cpp`), you must rebuild the server executable before running it. Running `./bookstore-server` only executes the *last built* version. To rebuild, use the following command:
+```bash
+./build.sh
 ```
 
 Server runs on http://localhost:4000/
@@ -282,38 +288,9 @@ DB_CONN "dbname=bookstore_db user=bookstore_user password=bookstore_password hos
 
 ### Available Queries
 | Query | Description | Auth Required |
-|-------|-------------|---------------|
-| `me` | Get current authenticated user | Yes |
-| `books` | List all books with optional search and category filter | No |
-| `book(id)` | Get a specific book by ID | No |
-| `cart` | Get user's shopping cart | Yes |
-| `orders` | Get user's orders | Yes |
-| `bookReviews(bookId)` | Get reviews for a specific book | No |
-| `myReviews` | Get current user's reviews | Yes |
-| `webhooks` | Get user's registered webhooks | Yes |
-| `_internalUserSearch(username)` | Internal user search | No |
-| `_fetchExternalResource(url)` | Fetch external resource by URL | No |
-| `_searchAdvanced(query)` | Advanced search | No |
-| `_adminStats` | Admin statistics | No |
-| `_adminAllOrders` | All orders | No |
-| `_adminAllPayments` | All payment transactions | No |
-| `_proInventory` | Pro-level books collection | No |
-
+|-------|-------------|---------------|\n| `me` | Get current authenticated user | Yes |\n| `books` | List all books with optional search and category filter | No |\n| `book(id)` | Get a specific book by ID | No |\n| `cart` | Get user\'s shopping cart | Yes |\n| `orders` | Get user\'s orders | Yes |\n| `bookReviews(bookId)` | Get reviews for a specific book | No |\n| `myReviews` | Get current user\'s reviews | Yes |\n| `webhooks` | Get user\'s registered webhooks | Yes |\n| `_internalUserSearch(username)` | Internal user search | No |\n| `_fetchExternalResource(url)` | Fetch external resource by URL | No |\n| `_searchAdvanced(query)` | Advanced search | No |\n| `_adminStats` | Admin statistics | No |\n| `_adminAllOrders` | All orders | No |\n| `_adminAllPayments` | All payment transactions | No |\n| `_proInventory` | Pro-level books collection | No |\n
 ### Available Mutations
-| Mutation | Description | Auth Required |
-|----------|-------------|---------------|
-| `register(username, firstName, lastName, password)` | Register a new user | No |
-| `login(username, password)` | Login and get JWT token | No |
-| `updateProfile(...)` | Update user profile | Yes |
-| `addToCart(bookId, quantity)` | Add item to shopping cart | Yes |
-| `removeFromCart(bookId)` | Remove item from shopping cart | Yes |
-| `createOrder()` | Create order from cart | Yes |
-| `cancelOrder(orderId)` | Cancel an order | Yes |
-| `createReview(bookId, rating, comment)` | Create a review | Yes |
-| `deleteReview(reviewId)` | Delete a review | Yes |
-| `registerWebhook(url, events, secret)` | Register a webhook URL | Yes |
-| `testWebhook(webhookId)` | Test a webhook | Yes |
-
+| Mutation | Description | Auth Required |\n|----------|-------------|---------------|\n| `register(username, firstName, lastName, password)` | Register a new user | No |\n| `login(username, password)` | Login and get JWT token | No |\n| `updateProfile(...)` | Update user profile | Yes |\n| `addToCart(bookId, quantity)` | Add item to shopping cart | Yes |\n| `removeFromCart(bookId)` | Remove item from shopping cart | Yes |\n| `createOrder()` | Create order from cart | Yes |\n| `cancelOrder(orderId)` | Cancel an order | Yes |\n| `createReview(bookId, rating, comment)` | Create a review | Yes |\n| `deleteReview(reviewId)` | Delete a review | Yes |\n| `registerWebhook(url, events, secret)` | Register a webhook URL | Yes |\n| `testWebhook(webhookId)` | Test a webhook | Yes |\n
 ### Recent Features Added
 - **Field Selection**: All queries now return only requested fields (e.g., `{ books { id title } }` returns only id and title)
 - **JWT Enhancements**: Tokens now include `iat` (issued at) and `exp` (expires in 6 hours)
@@ -336,11 +313,11 @@ The server contains 6 hidden expert-level vulnerabilities:
 | Query | Description |
 |-------|-------------|
 | `_batchQuery` | GraphQL batch queries bypass rate limiting |
-| `_processXML` | XXE vulnerability in XML processing |
-| `_applyCouponRace` | Race condition in coupon application |
-| `_jwtAlgorithmConfusion` | JWT algorithm confusion attack |
-| `_cachePoison` | HTTP cache poisoning via headers |
-| `_deepRecursion` | Deep recursion attack via nested queries |
+| `processXMLData` | XXE vulnerability in XML processing |
+| `applyCoupon` | Race condition in coupon application |
+| `decodeJWT` | JWT algorithm confusion attack |
+| `manageCache` | HTTP cache poisoning via headers |
+| `handleRecursiveQuery` | Deep recursion attack via nested queries |
 
 ### Hidden Pro Books (via `_proInventory`)
 The server contains 6 hidden books with advanced security research content:
@@ -507,7 +484,7 @@ string extractValue(const string& query, const string& key) {
     
     // Skip whitespace
     while (searchStart < query.length() && 
-           (query[searchStart] == ' ' || query[searchStart] == '\t')) {
+           (query[searchStart] == ' ' || query[searchStart] == '\\t')) {
         searchStart++;
     }
     
@@ -554,7 +531,7 @@ string extractValue(const string& query, const string& key) {
 
 ### Key Points:
 1. Check for both `"` (unescaped) AND `\"` (escaped) as opening quotes
-2. When `escaped=true`, a `"` means an escaped quote - skip it, don't add to value
+2. When `escaped=true`, a `"` means an escaped quote - skip it, don\'t add to value
 3. Only return when you hit an UNESCAPED closing quote
 4. Handle whitespace, commas, parentheses, and braces as value delimiters
 
@@ -577,7 +554,7 @@ Regex is fragile with escaped strings. Use the simple character-by-character par
 ### If You Break This Again...
 
 Symptoms to watch for:
-- `{"data":{"login":{"success":false,"message":"Missing required fields: username, password"}}}`
+- `{\"data\":{\"login\":{\"success\":false,\"message\":\"Missing required fields: username, password\"}}}`
 - Logs show `username='"admin"'` or `username=''`
 - Server receives `\\"` in the raw body
 

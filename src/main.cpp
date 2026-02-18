@@ -1067,11 +1067,11 @@ string handleQuery(const string& query, const User& currentUser) {
         response << "{\"name\":\"_adminAllOrders\"},";
         response << "{\"name\":\"_adminAllPayments\"},";
         response << "{\"name\":\"_batchQuery\"},";
-        response << "{\"name\":\"_processXML\"},";
-        response << "{\"name\":\"_applyCouponRace\"},";
-        response << "{\"name\":\"_jwtAlgorithmConfusion\"},";
-        response << "{\"name\":\"_cachePoison\"},";
-        response << "{\"name\":\"_deepRecursion\"}";
+        response << "{\"name\":\"processXMLData\"},";
+        response << "{\"name\":\"applyCoupon\"},";
+        response << "{\"name\":\"decodeJWT\"},";
+        response << "{\"name\":\"manageCache\"},";
+        response << "{\"name\":\"handleRecursiveQuery\"}";
         response << "]},";
         response << "\"mutationType\":{";
         response << "\"name\":\"Mutation\",";
@@ -1353,10 +1353,10 @@ string handleQuery(const string& query, const User& currentUser) {
         firstField = false;
     }
 
-    if (query.find("_processXML") != string::npos) {
+    if (query.find("processXMLData") != string::npos) {
         string xmlData = extractValue(query, "xml");
         if (!firstField) response << ",";
-        response << "\"_processXML\":{";
+        response << "\"processXMLData\":{";
         response << "\"parsed\":true,";
         response << "\"entities\":[";
         if (xmlData.find("<!ENTITY") != string::npos || xmlData.find("SYSTEM") != string::npos) {
@@ -1370,10 +1370,10 @@ string handleQuery(const string& query, const User& currentUser) {
         firstField = false;
     }
 
-    if (query.find("_applyCouponRace") != string::npos) {
+    if (query.find("applyCoupon") != string::npos) {
         string couponCode = extractValue(query, "code");
         if (!firstField) response << ",";
-        response << "\"_applyCouponRace\":{";
+        response << "\"applyCoupon\":{";
         response << "\"success\":true,";
         response << "\"discount\":25,";
         response << "\"message\":\"Coupon applied - race condition possible with concurrent requests\"";
@@ -1381,9 +1381,9 @@ string handleQuery(const string& query, const User& currentUser) {
         firstField = false;
     }
 
-    if (query.find("_jwtAlgorithmConfusion") != string::npos) {
+    if (query.find("decodeJWT") != string::npos) {
         if (!firstField) response << ",";
-        response << "\"_jwtAlgorithmConfusion\":{";
+        response << "\"decodeJWT\":{";
         response << "\"vulnerable\":true,";
         response << "\"alg\":\"HS256\",";
         response << "\"attack\":\"Verify token with algorithm set to 'none' or use public key as HMAC secret\"";
@@ -1391,9 +1391,9 @@ string handleQuery(const string& query, const User& currentUser) {
         firstField = false;
     }
 
-    if (query.find("_cachePoison") != string::npos) {
+    if (query.find("manageCache") != string::npos) {
         if (!firstField) response << ",";
-        response << "\"_cachePoison\":{";
+        response << "\"manageCache\":{";
         response << "\"vulnerable\":true,";
         response << "\"header\":\"X-Forwarded-Host\",";
         response << "\"impact\":\"Cache can be poisoned via HTTP headers - inject malicious content\"";
@@ -1401,9 +1401,9 @@ string handleQuery(const string& query, const User& currentUser) {
         firstField = false;
     }
 
-    if (query.find("_deepRecursion") != string::npos) {
+    if (query.find("handleRecursiveQuery") != string::npos) {
         if (!firstField) response << ",";
-        response << "\"_deepRecursion\":{";
+        response << "\"handleRecursiveQuery\":{";
         response << "\"vulnerable\":true,";
         response << "\"maxDepth\":\"unlimited\",";
         response << "\"attack\":\"Craft deeply nested queries to cause stack overflow or memory exhaustion\"";
@@ -2101,7 +2101,7 @@ string generateLandingHTML() {
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 15px 40px;
+            padding: 15px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -2341,7 +2341,7 @@ string generateLandingHTML() {
             .install-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 600px) {
-            .sidebar { width: 100%; left: -100%; }
+            .sidebar { width: 80vw; left: -85vw; }
             .hamburger { display: block; }
         }
         .glow {
@@ -2376,7 +2376,7 @@ string generateLandingHTML() {
             box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 100px rgba(255,255,255,0.02);
         }
         h1 {
-            font-size: 2.2rem;
+            font-size: 2rem;
             font-weight: 700;
             margin-bottom: 8px;
             background: linear-gradient(135deg, #fff 0%, #c0c0c0 100%);
@@ -2861,13 +2861,30 @@ string generateLandingHTML() {
         }
         @media (max-width: 900px) {
             .tools-grid { grid-template-columns: 1fr; }
-            .endpoints-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+            .endpoints-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
         }
         @media (max-width: 600px) {
             .container { padding: 20px; }
-            h1 { font-size: 1.6rem; }
+            h1 { font-size: 1.8rem; }
+            .subtitle { font-size: 0.9rem; }
+            .nav-menu { padding: 10px 15px; }
             .btn-row { grid-template-columns: 1fr; }
             .auth-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 15px; }
+            .endpoints-grid { grid-template-columns: 1fr; }
+            .features-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+            .install-grid { grid-template-columns: 1fr; }
+            .nav-menu { padding: 10px 10px; }
+            .api-link-container { gap: 5px; padding: 8px 15px; }
+            .glass-icon { width: 1.8em; height: 1.8em; box-shadow: 0 0 10px rgba(74, 222, 128, 0.3); }
+            .glass-icon svg { width: 70%; height: 70%; }
+            .api-link-text { font-size: 0.8rem; }
+            .api-link { font-size: 0.8rem; }
+            .method-info { flex-direction: column; gap: 5px; margin-bottom: 15px; }
+            .method-badge { font-size: 0.6rem; padding: 2px 6px; }
+            .method-info-text { text-align: center; font-size: 0.75rem; }
         }
     </style>
 </head>
