@@ -11,9 +11,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY src/main.cpp src/main.cpp
+COPY src/ src/
 
-RUN g++ -std=c++17 -pthread -o bookstore-server src/main.cpp -lpq -ljwt -lcurl -lssl -lcrypto
+RUN g++ -std=c++17 -pthread -o bookstore-server src/*.cpp -lpq -ljwt -lcurl -lssl -lcrypto
 
 EXPOSE 4000
 
