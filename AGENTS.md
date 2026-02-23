@@ -382,6 +382,20 @@ JWT_SECRET "CHANGE_ME_IN_PRODUCTION_real_jwt_secret_key_2024"
 DB_CONN "dbname=bookstore_db user=bookstore_user password=bookstore_password host=localhost port=5432"
 ```
 
+### CRITICAL: Database Schema Requirements
+When adding new features that use database tables, ensure the schema in `init_database.sql` matches what the code expects:
+
+**shopping_carts table MUST have these columns:**
+- `id` (UUID, primary key)
+- `user_id` (UUID, foreign key to users)
+- `subtotal` (DECIMAL)
+- `tax` (DECIMAL)
+- `discount` (DECIMAL)
+- `coupon_code` (VARCHAR)
+- `total` (DECIMAL)
+
+If code expects columns that don't exist in the schema, operations will silently fail or return incorrect results. Always verify schema matches code.
+
 ### Default Credentials
 | Username | Password | Role |
 |----------|----------|-------|
@@ -402,9 +416,27 @@ DB_CONN "dbname=bookstore_db user=bookstore_user password=bookstore_password hos
 2. Add cache variable: `map<K, T> newCache;`
 3. Add `loadNewCache()` function
 4. Call `loadNewCache()` in `main()` after db connect
-5. Add handler in `handleQuery()` or `handleMutation()`
+5. Add handler in `handleQuery()` or `handleMutation()` - **CRITICAL: Must add handler implementation!**
 6. Add introspection entry in `__schema` query handler (NO descriptions!)
 7. Add JSON builder function if needed: `TToJson(const T& t)`
+
+### CRITICAL: Always Implement the Handler
+When adding a new mutation or query to the schema, you MUST implement the handler in `graphql_handler.cpp`. Simply adding it to introspection is NOT enough.
+
+**Bug Example (applyCoupon):**
+- The mutation was added to schema but handler was missing
+- Requests returned `{"data":{}}` with no error - silent failure
+- Always test new mutations end-to-end
+
+### Mutation Syntax
+**IMPORTANT**: Mutations require parentheses syntax:
+```graphql
+# WRONG - returns empty response
+mutation { createOrder { success orderId } }
+
+# CORRECT - works properly
+mutation { createOrder() { success orderId } }
+```
 
 ### Comment Policy
 - DO NOT add code comments
@@ -415,7 +447,7 @@ DB_CONN "dbname=bookstore_db user=bookstore_user password=bookstore_password hos
 | Query | Description | Auth Required |
 |-------|-------------|---------------|\n| `me` | Get current authenticated user | Yes |\n| `books` | List all books with optional search and category filter | No |\n| `book(id)` | Get a specific book by ID | No |\n| `cart` | Get user\'s shopping cart | Yes |\n| `orders` | Get user\'s orders | Yes |\n| `bookReviews(bookId)` | Get reviews for a specific book | No |\n| `myReviews` | Get current user\'s reviews | Yes |\n| `webhooks` | Get user\'s registered webhooks | Yes |\n| `_internalUserSearch(username)` | Internal user search | No |\n| `_fetchExternalResource(url)` | Fetch external resource by URL | No |\n| `_searchAdvanced(query)` | Advanced search | No |\n| `_adminStats` | Admin statistics | No |\n| `_adminAllOrders` | All orders | No |\n| `_adminAllPayments` | All payment transactions | No |\n| `_batchQuery` | GraphQL batch queries bypass rate limiting | No |\n| `processXMLData` | XXE vulnerability in XML processing | No |\n| `applyCoupon` | Race condition in coupon application | No |\n| `decodeJWT` | JWT algorithm confusion attack | No |\n| `manageCache` | HTTP cache poisoning via headers | No |\n| `handleRecursiveQuery` | Deep recursion attack via nested queries | No |\n
 ### Available Mutations
-| Mutation | Description | Auth Required |\n|----------|-------------|---------------|\n| `register(username, firstName, lastName, password)` | Register a new user | No |\n| `login(username, password)` | Login and get JWT token | No |\n| `updateProfile(...)` | Update user profile | Yes |\n| `addToCart(bookId, quantity)` | Add item to shopping cart | Yes |\n| `removeFromCart(bookId)` | Remove item from shopping cart | Yes |\n| `createOrder()` | Create order from cart | Yes |\n| `purchaseCart(cardNumber, expiry, cvv)` | Charge vulnbank card for cart items | Yes |\n| `cancelOrder(orderId)` | Cancel an order | Yes |\n| `createReview(bookId, rating, comment)` | Create a review | Yes |\n| `deleteReview(reviewId)` | Delete a review | Yes |\n| `registerWebhook(url, events, secret)` | Register a webhook URL | Yes |\n| `testWebhook(webhookId)` | Test a webhook | Yes |\n
+| Mutation | Description | Auth Required |\n|----------|-------------|---------------|\n| `register(username, firstName, lastName, password)` | Register a new user | No |\n| `login(username, password)` | Login and get JWT token | No |\n| `updateProfile(...)` | Update user profile | Yes |\n| `addToCart(bookId, quantity)` | Add item to shopping cart | Yes |\n| `removeFromCart(bookId)` | Remove item from shopping cart | Yes |\n| `applyCoupon(code)` | Apply coupon code to cart | Yes |\n| `createOrder()` | Create order from cart | Yes |\n| `purchaseCart(cardNumber, expiry, cvv)` | Charge vulnbank card for cart items | Yes |\n| `cancelOrder(orderId)` | Cancel an order | Yes |\n| `createReview(bookId, rating, comment)` | Create a review | Yes |\n| `deleteReview(reviewId)` | Delete a review | Yes |\n| `registerWebhook(url, events, secret)` | Register a webhook URL | Yes |\n| `testWebhook(webhookId)` | Test a webhook | Yes |\n
 ### Recent Features Added
 - **Field Selection**: All queries now return only requested fields (e.g., `{ books { id title } }` returns only id and title)
 - **JWT Enhancements**: Tokens now include `iat` (issued at) and `exp` (expires in 6 hours)
@@ -564,7 +596,7 @@ The server contains additional advanced features for expert-level testing:
 440: 
 441: # Test SQL injection
 442: cat > /tmp/test_sql.json << 'EOF'
-443: {"query":"query { _searchAdvanced(query: \"1 OR 1=1\") { id title } }"}
+443: {"query":"query { _searchAdvanced(query: \"%\" OR 1=1) { id title } }"}
 444: EOF
 445: curl -X POST http://localhost:4000/graphql \
 446:   -H 'Content-Type: application/json' \

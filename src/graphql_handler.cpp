@@ -746,6 +746,66 @@ std::string handleQuery(const std::string& query, const User& currentUser) {
         PQclear(res);
     }
 
+    if (query.find("myReviews") != std::string::npos && !currentUser.id.empty()) {
+        std::cerr << "[QUERY] myReviews (user: " << currentUser.username << ")" << std::endl;
+        const char* params[1] = {currentUser.id.c_str()};
+        PGresult* res = PQexecParams(dbConn, "SELECT id, user_id, book_id, rating, comment, is_verified_purchase, created_at FROM reviews WHERE user_id = $1 ORDER BY created_at DESC", 1, nullptr, params, nullptr, nullptr, 0);
+        if (!firstField) response << ",";
+        response << "\"myReviews\":[";
+        if (PQresultStatus(res) == PGRES_TUPLES_OK) {
+            int rows = PQntuples(res);
+            for (int i = 0; i < rows; i++) {
+                if (i > 0) response << ",";
+                Review review;
+                review.id = atoi(PQgetvalue(res, i, 0));
+                review.userId = PQgetvalue(res, i, 1);
+                review.bookId = atoi(PQgetvalue(res, i, 2));
+                review.rating = atoi(PQgetvalue(res, i, 3));
+                review.comment = PQgetvalue(res, i, 4) ? PQgetvalue(res, i, 4) : "";
+                review.isVerifiedPurchase = (std::string(PQgetvalue(res, i, 5)) == "t");
+                review.createdAt = PQgetvalue(res, i, 6);
+                response << reviewToJson(review, query);
+            }
+        }
+        response << "]";
+        firstField = false;
+        PQclear(res);
+    } else if (query.find("myReviews") != std::string::npos) {
+        if (!firstField) response << ",";
+        response << "\"myReviews\":{\"message\":\"Authentication required\"}";
+        firstField = false;
+    }
+
+    if (query.find("webhooks") != std::string::npos && !currentUser.id.empty()) {
+        std::cerr << "[QUERY] webhooks (user: " << currentUser.username << ")" << std::endl;
+        const char* params[1] = {currentUser.id.c_str()};
+        PGresult* res = PQexecParams(dbConn, "SELECT id, user_id, url, events, secret, is_active, created_at FROM webhooks WHERE user_id = $1 ORDER BY created_at DESC", 1, nullptr, params, nullptr, nullptr, 0);
+        if (!firstField) response << ",";
+        response << "\"webhooks\":[";
+        if (PQresultStatus(res) == PGRES_TUPLES_OK) {
+            int rows = PQntuples(res);
+            for (int i = 0; i < rows; i++) {
+                if (i > 0) response << ",";
+                response << "{";
+                response << "\"id\":\"" << PQgetvalue(res, i, 0) << "\",";
+                response << "\"userId\":\"" << PQgetvalue(res, i, 1) << "\",";
+                response << "\"url\":\"" << escapeJson(PQgetvalue(res, i, 2)) << "\",";
+                response << "\"events\":\"" << escapeJson(PQgetvalue(res, i, 3)) << "\",";
+                response << "\"secret\":\"" << (PQgetvalue(res, i, 4) ? PQgetvalue(res, i, 4) : "") << "\",";
+                response << "\"isActive\":" << (std::string(PQgetvalue(res, i, 5)) == "t" ? "true" : "false") << ",";
+                response << "\"createdAt\":\"" << PQgetvalue(res, i, 6) << "\"";
+                response << "}";
+            }
+        }
+        response << "]";
+        firstField = false;
+        PQclear(res);
+    } else if (query.find("webhooks") != std::string::npos) {
+        if (!firstField) response << ",";
+        response << "\"webhooks\":{\"message\":\"Authentication required\"}";
+        firstField = false;
+    }
+
     if (query.find("_adminStats") != std::string::npos) {
         std::cerr << "[QUERY] _adminStats" << std::endl;
         PGresult* res = PQexec(dbConn, "SELECT "
@@ -1100,14 +1160,95 @@ std::string handleMutation(const std::string& query, User& currentUser) {
         firstField = false;
     }
 
+    if (query.find("applyCoupon(") != std::string::npos && !currentUser.id.empty()) {
+        std::string couponCode = extractValue(query, "code");
+        std::cerr << "[APPLYCOUPON] user='" << currentUser.username << "', code='" << couponCode << "'" << std::endl;
+
+        if (couponCode.empty()) {
+            if (!firstField) response << ",";
+            response << "\"applyCoupon\":{\"success\":false,\"message\":\"Coupon code required\"}";
+            firstField = false;
+        } else {
+            std::string cartId = "";
+            std::string userId = currentUser.id;
+            const char* cartParams[1] = {userId.c_str()};
+            PGresult* cartRes = PQexecParams(dbConn, "SELECT id FROM shopping_carts WHERE user_id = $1", 1, nullptr, cartParams, nullptr, nullptr, 0);
+            if (PQresultStatus(cartRes) == PGRES_TUPLES_OK && PQntuples(cartRes) > 0) {
+                cartId = PQgetvalue(cartRes, 0, 0);
+            }
+            PQclear(cartRes);
+
+            if (cartId.empty()) {
+                if (!firstField) response << ",";
+                response << "\"applyCoupon\":{\"success\":false,\"message\":\"Cart not found\"}";
+                firstField = false;
+            } else {
+                const char* couponParams[1] = {couponCode.c_str()};
+                PGresult* couponRes = PQexecParams(dbConn, "SELECT code, discount_type, discount_value FROM coupons WHERE code = $1 AND is_active = true", 1, nullptr, couponParams, nullptr, nullptr, 0);
+                if (PQresultStatus(couponRes) != PGRES_TUPLES_OK || PQntuples(couponRes) == 0) {
+                    PQclear(couponRes);
+                    if (!firstField) response << ",";
+                    response << "\"applyCoupon\":{\"success\":false,\"message\":\"Invalid or inactive coupon code\"}";
+                    firstField = false;
+                } else {
+                    std::string code = PQgetvalue(couponRes, 0, 0);
+                    std::string discountType = PQgetvalue(couponRes, 0, 1);
+                    double discountValue = atof(PQgetvalue(couponRes, 0, 2));
+                    PQclear(couponRes);
+
+                    double subtotal = 0;
+                    const char* cartParam[1] = {cartId.c_str()};
+                    PGresult* itemsRes = PQexecParams(dbConn, "SELECT ci.quantity, b.price FROM cart_items ci JOIN books b ON ci.book_id = b.id WHERE ci.cart_id = $1", 1, nullptr, cartParam, nullptr, nullptr, 0);
+                    if (PQresultStatus(itemsRes) == PGRES_TUPLES_OK) {
+                        int rows = PQntuples(itemsRes);
+                        for (int i = 0; i < rows; i++) {
+                            double price = atof(PQgetvalue(itemsRes, i, 1));
+                            int qty = atoi(PQgetvalue(itemsRes, i, 0));
+                            subtotal += price * qty;
+                        }
+                    }
+                    PQclear(itemsRes);
+
+                    double discountAmount = 0;
+                    if (discountType == "percentage") {
+                        discountAmount = subtotal * (discountValue / 100.0);
+                    } else {
+                        discountAmount = discountValue;
+                    }
+
+                    const char* updateParams[3] = {std::to_string(discountAmount).c_str(), couponCode.c_str(), cartId.c_str()};
+                    PGresult* updateRes = PQexecParams(dbConn, "UPDATE shopping_carts SET discount = $1, coupon_code = $2, updated_at = NOW() WHERE id = $3", 3, nullptr, updateParams, nullptr, nullptr, 0);
+                    PQclear(updateRes);
+
+                    if (!firstField) response << ",";
+                    response << "\"applyCoupon\":{";
+                    response << "\"success\":true,";
+                    response << "\"message\":\"Coupon applied successfully\",";
+                    response << "\"discountAmount\":" << discountAmount << ",";
+                    response << "\"couponCode\":\"" << escapeJson(code) << "\"";
+                    response << "}";
+                    firstField = false;
+                }
+            }
+        }
+    } else if (query.find("applyCoupon(") != std::string::npos) {
+        if (!firstField) response << ",";
+        response << "\"applyCoupon\":{\"success\":false,\"message\":\"Authentication required\"}";
+        firstField = false;
+    }
+
     if (query.find("createOrder(") != std::string::npos && !currentUser.id.empty()) {
         std::cerr << "[CREATEORDER] user='" << currentUser.username << "'" << std::endl;
         std::string cartId = "";
         std::string userId = currentUser.id;
+        double discount = 0;
+        std::string couponCode = "";
         const char* cartParams[1] = {userId.c_str()};
-        PGresult* cartRes = PQexecParams(dbConn, "SELECT id FROM shopping_carts WHERE user_id = $1", 1, nullptr, cartParams, nullptr, nullptr, 0);
+        PGresult* cartRes = PQexecParams(dbConn, "SELECT id, COALESCE(discount, 0), COALESCE(coupon_code, '') FROM shopping_carts WHERE user_id = $1", 1, nullptr, cartParams, nullptr, nullptr, 0);
         if (PQresultStatus(cartRes) == PGRES_TUPLES_OK && PQntuples(cartRes) > 0) {
             cartId = PQgetvalue(cartRes, 0, 0);
+            discount = atof(PQgetvalue(cartRes, 0, 1));
+            couponCode = PQgetvalue(cartRes, 0, 2);
         }
         PQclear(cartRes);
 
@@ -1130,18 +1271,20 @@ std::string handleMutation(const std::string& query, User& currentUser) {
 
         double tax = subtotal * 0.08;
         double shipping = subtotal > 50 ? 0 : 5.99;
-        double total = subtotal + tax + shipping;
+        double total = subtotal + tax + shipping - discount;
+        if (total < 0) total = 0;
 
-        std::string sql = "INSERT INTO orders (user_id, order_number, status, subtotal, tax_amount, shipping_amount, total_amount, shipping_address, billing_address, payment_status) "
-                     "VALUES ($1, $2, 'pending', $3, $4, $5, $6, '123 Test St', '123 Test St', 'pending') RETURNING id";
-        const char* paramValues[6] = {userId.c_str(), orderNumber.c_str(),
+        std::string sql = "INSERT INTO orders (user_id, order_number, status, subtotal, tax_amount, shipping_amount, discount_amount, total_amount, shipping_address, billing_address, payment_status) "
+                     "VALUES ($1, $2, 'pending', $3, $4, $5, $6, $7, '123 Test St', '123 Test St', 'pending') RETURNING id";
+        const char* paramValues[7] = {userId.c_str(), orderNumber.c_str(),
                                       std::to_string(subtotal).c_str(), std::to_string(tax).c_str(),
-                                      std::to_string(shipping).c_str(), std::to_string(total).c_str()};
-        PGresult* res = PQexecParams(dbConn, sql.c_str(), 6, nullptr, paramValues, nullptr, nullptr, 0);
+                                      std::to_string(shipping).c_str(), std::to_string(discount).c_str(),
+                                      std::to_string(total).c_str()};
+        PGresult* res = PQexecParams(dbConn, sql.c_str(), 7, nullptr, paramValues, nullptr, nullptr, 0);
 
         if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) > 0) {
             std::string orderId = PQgetvalue(res, 0, 0);
-            std::cerr << "[CREATEORDER] created orderId='" << orderId << "', orderNumber='" << orderNumber << "', total=" << total << std::endl;
+            std::cerr << "[CREATEORDER] created orderId='" << orderId << "', orderNumber='" << orderNumber << "', total=" << total << ", discount=" << discount << ", couponCode='" << couponCode << "'" << std::endl;
             PGresult* itemsRes2 = PQexecParams(dbConn, "SELECT ci.book_id, b.title, b.isbn, ci.quantity, b.price "
                                                           "FROM cart_items ci JOIN books b ON ci.book_id = b.id WHERE ci.cart_id = $1",
                                               1, nullptr, cartParam, nullptr, nullptr, 0);

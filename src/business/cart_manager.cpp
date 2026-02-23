@@ -266,8 +266,8 @@ std::string CartManager::applyCoupon(const std::string& userId, const std::strin
     
     double discountAmount = couponData["discountAmount"];
     
-    std::string updateQuery = "UPDATE shopping_carts SET discount = $1, updated_at = NOW() WHERE id = $2";
-    conn->executeQuery(updateQuery, {std::to_string(discountAmount), cartId});
+    std::string updateQuery = "UPDATE shopping_carts SET discount = $1, coupon_code = $2, updated_at = NOW() WHERE id = $3";
+    conn->executeQuery(updateQuery, {std::to_string(discountAmount), couponCode, cartId});
     
     return getCart(userId);
 }
@@ -286,7 +286,7 @@ std::string CartManager::removeCoupon(const std::string& userId) {
     std::string cartId = PQgetvalue(cartResult, 0, 0);
     conn->clearResult(cartResult);
     
-    std::string updateQuery = "UPDATE shopping_carts SET discount = 0, updated_at = NOW() WHERE id = $1";
+    std::string updateQuery = "UPDATE shopping_carts SET discount = 0, coupon_code = NULL, updated_at = NOW() WHERE id = $1";
     conn->executeQuery(updateQuery, {cartId});
     
     return getCart(userId);
