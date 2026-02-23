@@ -45,11 +45,14 @@ jobs:
 
       - name: Test with Docker Compose
         run: |
+          set -x
           echo "=== Docker Build Test ==="
           docker compose up -d --build
-          sleep 15
-          docker compose ps
-          docker compose logs --tail 30 api
+          sleep 20
+          docker compose ps -a
+          docker compose logs --tail 100 api
+          echo "=== Testing connection ==="
+          curl -v --max-time 10 http://localhost:4000/graphql 2>&1 || echo "Connection failed"
 
       - name: Run Test Suite
         run: |

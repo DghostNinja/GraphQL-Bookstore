@@ -30,6 +30,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      DATABASE_URL: "postgresql://bookstore_user:bookstore_password@postgres:5432/bookstore_db"
       DB_CONNECTION_STRING: "dbname=bookstore_db user=bookstore_user password=bookstore_password host=postgres port=5432"
       JWT_SECRET: "CHANGE_ME_IN_PRODUCTION_real_jwt_secret_key_2024"
       PORT: "4000"
