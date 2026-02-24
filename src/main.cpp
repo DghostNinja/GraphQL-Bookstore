@@ -298,6 +298,15 @@ int main() {
             if (headerEnd != string::npos) {
                 string body = request.substr(headerEnd + 4);
 
+                if (!isValidJson(body)) {
+                    string errorResponse = "{\"errors\":[{\"message\":\"Invalid JSON: Malformed request body\"}]}";
+                    string response = "HTTP/1.1 400 Bad Request\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: application/json\r\nContent-Length: " +
+                        to_string(errorResponse.length()) + "\r\n\r\n" + errorResponse;
+                    send(clientSocket, response.c_str(), response.length(), 0);
+                    close(clientSocket);
+                    continue;
+                }
+
                 size_t queryPos = body.find("\"query\"");
                 if (queryPos != string::npos) {
                     size_t colonPos = body.find(":", queryPos);
