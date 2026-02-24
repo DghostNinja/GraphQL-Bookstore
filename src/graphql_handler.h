@@ -15,6 +15,8 @@ std::string extractQueryFromBody(const std::string& body);
 std::string extractValue(const std::string& query, const std::string& key);
 std::string extractIntValue(const std::string& query, const std::string& key);
 bool isFieldRequested(const std::string& query, const std::string& fieldName);
+std::string extractSubQuery(const std::string& query, const std::string& fieldName);
+bool isFieldRequestedInContext(const std::string& query, const std::string& contextName, const std::string& fieldName);
 
 // JSON Conversion Functions
 std::string userToJson(const User& user, const std::string& query = "");

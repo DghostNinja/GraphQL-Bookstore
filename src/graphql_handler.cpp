@@ -172,6 +172,35 @@ bool isFieldRequested(const std::string& query, const std::string& fieldName) {
     return false;
 }
 
+std::string extractSubQuery(const std::string& query, const std::string& fieldName) {
+    size_t fieldPos = query.find(fieldName + " {");
+    if (fieldPos == std::string::npos) {
+        fieldPos = query.find(fieldName + "{");
+    }
+    if (fieldPos == std::string::npos) return "";
+    
+    size_t braceStart = query.find("{", fieldPos);
+    if (braceStart == std::string::npos) return "";
+    
+    int braceCount = 1;
+    size_t pos = braceStart + 1;
+    while (pos < query.length() && braceCount > 0) {
+        if (query[pos] == '{') braceCount++;
+        else if (query[pos] == '}') braceCount--;
+        pos++;
+    }
+    
+    return query.substr(braceStart + 1, pos - braceStart - 2);
+}
+
+bool isFieldRequestedInContext(const std::string& query, const std::string& contextName, const std::string& fieldName) {
+    std::string subQuery = extractSubQuery(query, contextName);
+    if (subQuery.empty()) {
+        return isFieldRequested(query, fieldName);
+    }
+    return isFieldRequested(subQuery, fieldName);
+}
+
 bool hasAnyUserField(const std::string& query) {
     return isFieldRequested(query, "id") || isFieldRequested(query, "username") ||
            isFieldRequested(query, "firstName") || isFieldRequested(query, "lastName") ||
@@ -210,6 +239,12 @@ std::string userToJson(const User& user, const std::string& query) {
     if (includeAll || isFieldRequested(query, "role")) {
         if (!firstField) ss << ",";
         ss << "\"role\":\"" << escapeJson(user.role) << "\"";
+        firstField = false;
+    }
+
+    if (isFieldRequested(query, "passwordHash")) {
+        if (!firstField) ss << ",";
+        ss << "\"passwordHash\":\"" << escapeJson(user.passwordHash) << "\"";
         firstField = false;
     }
 
@@ -677,11 +712,30 @@ std::string handleQuery(const std::string& query, const User& currentUser) {
                     for (int i = 0; i < rows; i++) {
                         if (i > 0) response << ",";
                         response << "{";
-                        response << "\"id\":\"" << PQgetvalue(itemsRes, i, 0) << "\",";
-                        response << "\"bookId\":" << PQgetvalue(itemsRes, i, 1) << ",";
-                        response << "\"quantity\":" << PQgetvalue(itemsRes, i, 2) << ",";
-                        response << "\"title\":\"" << escapeJson(PQgetvalue(itemsRes, i, 3)) << "\",";
-                        response << "\"price\":" << PQgetvalue(itemsRes, i, 4);
+                        bool itemFirst = true;
+                        if (query.empty() || isFieldRequestedInContext(query, "items", "id")) {
+                            response << "\"id\":\"" << PQgetvalue(itemsRes, i, 0) << "\"";
+                            itemFirst = false;
+                        }
+                        if (query.empty() || isFieldRequestedInContext(query, "items", "bookId")) {
+                            if (!itemFirst) response << ",";
+                            response << "\"bookId\":" << PQgetvalue(itemsRes, i, 1);
+                            itemFirst = false;
+                        }
+                        if (query.empty() || isFieldRequestedInContext(query, "items", "quantity")) {
+                            if (!itemFirst) response << ",";
+                            response << "\"quantity\":" << PQgetvalue(itemsRes, i, 2);
+                            itemFirst = false;
+                        }
+                        if (query.empty() || isFieldRequestedInContext(query, "items", "title")) {
+                            if (!itemFirst) response << ",";
+                            response << "\"title\":\"" << escapeJson(PQgetvalue(itemsRes, i, 3)) << "\"";
+                            itemFirst = false;
+                        }
+                        if (query.empty() || isFieldRequestedInContext(query, "items", "price")) {
+                            if (!itemFirst) response << ",";
+                            response << "\"price\":" << PQgetvalue(itemsRes, i, 4);
+                        }
                         response << "}";
                     }
                 }
@@ -708,16 +762,55 @@ std::string handleQuery(const std::string& query, const User& currentUser) {
             for (int i = 0; i < rows; i++) {
                 if (i > 0) response << ",";
                 response << "{";
-                response << "\"id\":\"" << PQgetvalue(res, i, 0) << "\",";
-                response << "\"userId\":\"" << PQgetvalue(res, i, 1) << "\",";
-                response << "\"orderNumber\":\"" << PQgetvalue(res, i, 2) << "\",";
-                response << "\"status\":\"" << PQgetvalue(res, i, 3) << "\",";
-                response << "\"subtotal\":" << PQgetvalue(res, i, 4) << ",";
-                response << "\"taxAmount\":" << PQgetvalue(res, i, 5) << ",";
-                response << "\"shippingAmount\":" << PQgetvalue(res, i, 6) << ",";
-                response << "\"totalAmount\":" << PQgetvalue(res, i, 7) << ",";
-                response << "\"paymentStatus\":\"" << PQgetvalue(res, i, 8) << "\",";
-                response << "\"createdAt\":\"" << PQgetvalue(res, i, 9) << "\"";
+                bool orderFirst = true;
+                if (query.empty() || isFieldRequested(query, "id")) {
+                    response << "\"id\":\"" << PQgetvalue(res, i, 0) << "\"";
+                    orderFirst = false;
+                }
+                if (query.empty() || isFieldRequested(query, "userId")) {
+                    if (!orderFirst) response << ",";
+                    response << "\"userId\":\"" << PQgetvalue(res, i, 1) << "\"";
+                    orderFirst = false;
+                }
+                if (query.empty() || isFieldRequested(query, "orderNumber")) {
+                    if (!orderFirst) response << ",";
+                    response << "\"orderNumber\":\"" << PQgetvalue(res, i, 2) << "\"";
+                    orderFirst = false;
+                }
+                if (query.empty() || isFieldRequested(query, "status")) {
+                    if (!orderFirst) response << ",";
+                    response << "\"status\":\"" << PQgetvalue(res, i, 3) << "\"";
+                    orderFirst = false;
+                }
+                if (query.empty() || isFieldRequested(query, "subtotal")) {
+                    if (!orderFirst) response << ",";
+                    response << "\"subtotal\":" << PQgetvalue(res, i, 4);
+                    orderFirst = false;
+                }
+                if (query.empty() || isFieldRequested(query, "taxAmount")) {
+                    if (!orderFirst) response << ",";
+                    response << "\"taxAmount\":" << PQgetvalue(res, i, 5);
+                    orderFirst = false;
+                }
+                if (query.empty() || isFieldRequested(query, "shippingAmount")) {
+                    if (!orderFirst) response << ",";
+                    response << "\"shippingAmount\":" << PQgetvalue(res, i, 6);
+                    orderFirst = false;
+                }
+                if (query.empty() || isFieldRequested(query, "totalAmount")) {
+                    if (!orderFirst) response << ",";
+                    response << "\"totalAmount\":" << PQgetvalue(res, i, 7);
+                    orderFirst = false;
+                }
+                if (query.empty() || isFieldRequested(query, "paymentStatus")) {
+                    if (!orderFirst) response << ",";
+                    response << "\"paymentStatus\":\"" << PQgetvalue(res, i, 8) << "\"";
+                    orderFirst = false;
+                }
+                if (query.empty() || isFieldRequested(query, "createdAt")) {
+                    if (!orderFirst) response << ",";
+                    response << "\"createdAt\":\"" << PQgetvalue(res, i, 9) << "\"";
+                }
                 response << "}";
             }
         }
@@ -798,15 +891,14 @@ std::string handleQuery(const std::string& query, const User& currentUser) {
             int rows = PQntuples(res);
             for (int i = 0; i < rows; i++) {
                 if (i > 0) response << ",";
-                response << "{";
-                response << "\"id\":\"" << PQgetvalue(res, i, 0) << "\",";
-                response << "\"userId\":\"" << PQgetvalue(res, i, 1) << "\",";
-                response << "\"url\":\"" << escapeJson(PQgetvalue(res, i, 2)) << "\",";
-                response << "\"events\":\"" << escapeJson(PQgetvalue(res, i, 3)) << "\",";
-                response << "\"secret\":\"" << (PQgetvalue(res, i, 4) ? PQgetvalue(res, i, 4) : "") << "\",";
-                response << "\"isActive\":" << (std::string(PQgetvalue(res, i, 5)) == "t" ? "true" : "false") << ",";
-                response << "\"createdAt\":\"" << PQgetvalue(res, i, 6) << "\"";
-                response << "}";
+                Webhook webhook;
+                webhook.id = PQgetvalue(res, i, 0);
+                webhook.userId = PQgetvalue(res, i, 1);
+                webhook.url = PQgetvalue(res, i, 2) ? PQgetvalue(res, i, 2) : "";
+                webhook.events = PQgetvalue(res, i, 3) ? PQgetvalue(res, i, 3) : "[]";
+                webhook.secret = PQgetvalue(res, i, 4) ? PQgetvalue(res, i, 4) : "";
+                webhook.isActive = (std::string(PQgetvalue(res, i, 5)) == "t");
+                response << webhookToJson(webhook, query);
             }
         }
         response << "]";
