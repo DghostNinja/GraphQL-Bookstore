@@ -994,12 +994,9 @@ string generateLandingHTML() {
                 <div class="sidebar-group">
                     <div class="sidebar-group-title">Overview</div>
                     <a href="#" class="sidebar-item sub-item" onclick="showSection('overview')">Welcome</a>
-                    <a href="#" class="sidebar-item sub-item" onclick="showSection('how-to-send-requests')">How To Send Requests</a>
-                </div>
-                <div class="sidebar-group">
-                    <div class="sidebar-group-title">Installation</div>
                     <a href="#" class="sidebar-item sub-item" onclick="showSection('local-install')">Local Installation</a>
                     <a href="#" class="sidebar-item sub-item" onclick="showSection('docker-install')">Docker Installation</a>
+                    <a href="#" class="sidebar-item sub-item" onclick="showSection('how-to-send-requests')">How To Send Requests</a>
                 </div>
                 <a href="#" class="sidebar-item" onclick="showSection('queries')">Queries</a>
                 <a href="#" class="sidebar-item" onclick="showSection('mutations')">Mutations</a>
@@ -1354,6 +1351,17 @@ string generateLandingHTML() {
                         The GraphQL Bookstore API accepts requests via HTTP POST to the <code style="color: #4ade80;">/graphql</code> endpoint. All requests must include a JSON body with a <code style="color: #fbbf24;">query</code> field containing your GraphQL operation.
                     </p>
 
+                    <div class="section-title" style="margin-top: 25px;">API Endpoints</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        You can use either of the following endpoints:
+                    </p>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #4ade80;">Local Development:</span>  http://localhost:4000/graphql
+<span style="color: #60a5fa;">Live URL:</span>     https://api.graphqlbook.store/graphql
+
+<span style="color: #52525b;">// All examples below use localhost. Simply replace with the live URL when ready.</span></pre>
+                    </div>
+
                     <div class="section-title" style="margin-top: 25px;">Basic Request Structure</div>
                     <div class="code-block">
                         <pre style="color: #a3a3a3;">POST /graphql
@@ -1561,60 +1569,74 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
                 <div id="local-install" class="doc-section glass-panel">
                     <div class="section-title">Local Installation</div>
                     
+                    <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px; line-height: 1.6;">
+                        Run the API directly on your machine. Requires C++ compiler, PostgreSQL, and required libraries.
+                    </p>
+
+                    <div class="section-title" style="margin-top: 20px;">Prerequisites</div>
+                    <ul style="color: rgba(255,255,255,0.6); margin-left: 20px; margin-bottom: 20px; line-height: 1.8;">
+                        <li>C++ compiler (g++)</li>
+                        <li>PostgreSQL database</li>
+                        <li>libpq-dev</li>
+                        <li>libjwt-dev</li>
+                        <li>libcurl-dev</li>
+                    </ul>
+
+                    <div class="section-title" style="margin-top: 20px;">Quick Setup</div>
                     <div class="code-block-with-copy">
                         <div class="code-header">
-                            <div class="code-title">Quick Setup</div>
+                            <div class="code-title">Clone and Build</div>
                             <button class="copy-button" onclick="copyToClipboard('local-setup')">Copy</button>
                         </div>
                         <div class="code-block">
-                            <pre id="local-setup"># Clone and setup:
-git clone <repo-url>
+                            <pre id="local-setup">git clone https://github.com/DghostNinja/GraphQL-Bookstore.git
 cd GraphQL-Bookstore
-./build.sh
-
-# Run the server:
-./bookstore-server</pre>
+./build.sh</pre>
                         </div>
                     </div>
 
-                    <p style="color: rgba(255,255,255,0.6); margin-top: 15px;">
-                        The build script automatically installs dependencies, builds the server, sets up the database, and loads seed data.
-                    </p><br>
-                    
-                    <p style="color: rgba(255,255,255,0.6);">
-                        <strong>Server:</strong> http://localhost:4000/<br>
-                        <strong>Endpoint:</strong> http://localhost:4000/graphql
-                    </p>
+                    <div class="section-title" style="margin-top: 20px;">Run the Server</div>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3;">./bookstore-server</pre>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 20px;">Server URLs</div>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #4ade80;">UI Guide:</span>   http://localhost:4000
+<span style="color: #60a5fa;">API Endpoint:</span>    http://localhost:4000/graphql</pre>
+                    </div>
                 </div>
 
                 <!-- Docker Installation Section -->
                 <div id="docker-install" class="doc-section glass-panel">
                     <div class="section-title">Docker Installation</div>
-                    
+
+                    <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px; line-height: 1.6;">
+                        Run the API in a Docker container. Easiest way - handles all dependencies automatically.
+                    </p>
+
+                    <div class="section-title" style="margin-top: 20px;">Quick Setup</div>
                     <div class="code-block-with-copy">
                         <div class="code-header">
-                            <div class="code-title">Quick Start</div>
+                            <div class="code-title">Clone and Run</div>
                             <button class="copy-button" onclick="copyToClipboard('docker-quick')">Copy</button>
                         </div>
                         <div class="code-block">
-                            <pre id="docker-quick"># Clone and run:
-git clone <repo-url>
+                            <pre id="docker-quick">git clone https://github.com/DghostNinja/GraphQL-Bookstore.git
 cd GraphQL-Bookstore
-sudo docker-compose up --build
-
-# Access at: http://localhost:4000</pre>
+docker-compose up --build</pre>
                         </div>
                     </div>
 
-                    <div class="code-block-with-copy">
-                        <div class="code-header">
-                            <div class="code-title">Stop</div>
-                            <button class="copy-button" onclick="copyToClipboard('docker-stop')">Copy</button>
-                        </div>
-                        <div class="code-block">
-                            <pre id="docker-stop"># Stop containers:
-sudo docker-compose down</pre>
-                        </div>
+                    <div class="section-title" style="margin-top: 20px;">Server URLs</div>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #4ade80;">UI Guide:</span>   http://localhost:4000
+<span style="color: #60a5fa;">API Endpoint:</span>    http://localhost:4000/graphql</pre>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 20px;">Stop the Server</div>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3;">docker-compose down</pre>
                     </div>
                 </div>
 
