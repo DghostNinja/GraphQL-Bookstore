@@ -992,12 +992,15 @@ string generateLandingHTML() {
             </div>
             <div class="sidebar-menu">
                 <div class="sidebar-group">
+                    <div class="sidebar-group-title">Overview</div>
+                    <a href="#" class="sidebar-item sub-item" onclick="showSection('overview')">Welcome</a>
+                    <a href="#" class="sidebar-item sub-item" onclick="showSection('how-to-send-requests')">How To Send Requests</a>
+                </div>
+                <div class="sidebar-group">
                     <div class="sidebar-group-title">Installation</div>
                     <a href="#" class="sidebar-item sub-item" onclick="showSection('local-install')">Local Installation</a>
                     <a href="#" class="sidebar-item sub-item" onclick="showSection('docker-install')">Docker Installation</a>
                 </div>
-                <a href="#" class="sidebar-item" onclick="showSection('usage')">Usage</a>
-                <a href="#" class="sidebar-item" onclick="showSection('auth')">Authentication</a>
                 <a href="#" class="sidebar-item" onclick="showSection('queries')">Queries</a>
                 <a href="#" class="sidebar-item" onclick="showSection('mutations')">Mutations</a>
                 <a href="#" class="sidebar-item" onclick="showSection('vulnerabilities')">Vulnerabilities</a>
@@ -1278,6 +1281,282 @@ string generateLandingHTML() {
                         <p class="subtitle">Complete guide to GraphQL Bookstore API</p>
                     </div>
 
+                <!-- Welcome Section -->
+                <div id="overview" class="doc-section glass-panel">
+                    <div class="section-title">Welcome</div>
+                    
+                    <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px; line-height: 1.6;">
+                        Welcome to the <strong>GraphQL Bookstore API</strong> - a deliberately vulnerable API designed for security education and hands-on learning of GraphQL fundamentals. This project provides a realistic bookstore environment where you can explore common web vulnerabilities in a safe, educational setting.
+                    </p>
+
+                    <div class="section-title" style="margin-top: 25px;">What is This API?</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        The GraphQL Bookstore API simulates a real-world e-commerce platform built with GraphQL. It includes complete functionality for a bookstore including user accounts, book browsing, shopping cart, order management, product reviews, and webhook notifications. The API is intentionally built with various security vulnerabilities to help developers, security researchers, and students understand and identify common web application security flaws.
+                    </p>
+
+                    <div class="section-title" style="margin-top: 25px;">What is It Built For?</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        This API serves as a learning platform for:
+                    </p>
+                    <ul style="color: rgba(255,255,255,0.6); margin-left: 20px; margin-bottom: 20px; line-height: 1.8;">
+                        <li>Understanding GraphQL API security fundamentals</li>
+                        <li>Learning to identify and exploit common vulnerabilities</li>
+                        <li>Practicing secure coding techniques</li>
+                        <li>Testing security tools and methodologies</li>
+                        <li>Educational workshops and capture-the-flag (CTF) events</li>
+                    </ul>
+
+                    <div class="section-title" style="margin-top: 25px;">Business Flow</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        The API follows a typical e-commerce workflow:
+                    </p>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;">
+1. USER REGISTRATION/LOGIN
+   └─→ Create account or authenticate to receive JWT token
+
+2. BROWSE BOOKS
+   └─→ Query books, search by title/author/category
+   └─→ View book details and reviews
+
+3. MANAGE CART
+   └─→ Add books to shopping cart
+   └─→ Update quantities or remove items
+   └──→ Apply coupon codes (discounts)
+
+4. CHECKOUT & PAYMENT
+   └─→ Review cart contents
+   └─→ Process payment (simulated Vulnbank)
+   └─→ Create order record
+
+5. ORDER MANAGEMENT
+   └─→ View order history
+   └─→ Cancel orders (if allowed)
+   └─→ Track order status
+
+6. REVIEWS & RATINGS
+   └─→ Submit reviews for purchased books
+   └─→ View reviews from other users
+
+7. WEBHOOKS (Optional)
+   └─→ Register webhook URLs for real-time notifications
+   └─→ Receive events: order created, paid, cancelled, etc.</pre>
+                    </div>
+
+                    
+                </div>
+
+                <!-- How To Send Requests Section -->
+                <div id="how-to-send-requests" class="doc-section glass-panel">
+                    <div class="section-title">How To Send Requests</div>
+                    
+                    <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px; line-height: 1.6;">
+                        The GraphQL Bookstore API accepts requests via HTTP POST to the <code style="color: #4ade80;">/graphql</code> endpoint. All requests must include a JSON body with a <code style="color: #fbbf24;">query</code> field containing your GraphQL operation.
+                    </p>
+
+                    <div class="section-title" style="margin-top: 25px;">Basic Request Structure</div>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3;">POST /graphql
+Content-Type: application/json
+
+{
+  "query": "Your GraphQL query or mutation here"
+}</pre>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Using cURL</div>
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Query Books (No Auth Required)</div>
+                            <button class="copy-button" onclick="copyToClipboard('curl-books')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="curl-books">curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ books { id title price } }"}'</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Login (Get JWT Token)</div>
+                            <button class="copy-button" onclick="copyToClipboard('curl-login')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="curl-login">curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"mutation { login(username: \"admin\", password: \"password123\") { success token } }"}'</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Authenticated Request</div>
+                            <button class="copy-button" onclick="copyToClipboard('curl-auth')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="curl-auth">curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE" \
+  -d '{"query":"mutation { addToCart(bookId: 1, quantity: 2) { success } }"}'</pre>
+                        </div>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Using JavaScript (Fetch API)</div>
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Basic Query</div>
+                            <button class="copy-button" onclick="copyToClipboard('js-basic')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="js-basic">fetch('/graphql', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    query: '{ books { id title price } }'
+  })
+})
+.then(r => r.json())
+.then(d => console.log(d));</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">With Authentication</div>
+                            <button class="copy-button" onclick="copyToClipboard('js-auth')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="js-auth">// First login to get token, then use it for authenticated requests
+const token = 'YOUR_JWT_TOKEN_HERE';
+
+fetch('/graphql', {
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + token
+  },
+  body: JSON.stringify({
+    query: 'mutation { addToCart(bookId: 1, quantity: 2) { success } }'
+  })
+})
+.then(r => r.json())
+.then(d => console.log(d));</pre>
+                        </div>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Query vs Mutation</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        <strong>Queries</strong> are used to fetch data (read operations). <strong>Mutations</strong> are used to modify data (write operations like creating, updating, or deleting).
+                    </p>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #a78bfa;"># Query - Read data (no exclamation point)</span>
+query {
+  books { id title price }
+}
+
+<span style="color: #f472b6;"># Mutation - Write data (starts with mutation keyword)</span>
+mutation {
+  login(username: "admin", password: "pass") { token }
+}</pre>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Request Headers</div>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #fbbf24;">Content-Type:</span> application/json
+<span style="color: #fbbf24;">Authorization:</span> Bearer &lt;your-jwt-token&gt;  <span style="color: #52525b;">// Only for authenticated requests</span></pre>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Response Format</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        Successful responses are wrapped in a <code style="color: #fbbf24;">data</code> object. Errors are returned in an <code style="color: #f87171;">errors</code> array.
+                    </p>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #52525b;">// Success Response</span>
+{
+  "data": {
+    "books": [
+      { "id": "1", "title": "Book Title", "price": 19.99 }
+    ]
+  }
+}
+
+<span style="color: #52525b;">// Error Response</span>
+{
+  "errors": [
+    { "message": "Authentication required" }
+  ]
+}</pre>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Using Postman</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        Postman is a popular tool for testing APIs. Here's how to use it with this GraphQL API:
+                    </p>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #fbbf24;">Method:</span> POST
+
+<span style="color: #fbbf24;">URL:</span> http://localhost:4000/graphql
+      (or https://api.graphqlbook.store/graphql for production)
+
+<span style="color: #fbbf24;">Headers:</span>
+Content-Type: application/json
+Authorization: Bearer &lt;your-token&gt;  <span style="color: #52525b;">// Only for authenticated requests</span>
+
+<span style="color: #fbbf24;">Body (JSON):</span>
+{
+  "query": "{ books { id title price } }"
+}</pre>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Using Online Tools</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        You can also use online GraphQL tools like Apollo GraphQL Studio, Insomnia, or similar:
+                    </p>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #fbbf24;">Apollo GraphQL Studio:</span> https://studio.apollographql.com/sandbox/explore
+<span style="color: #fbbf24;">Insomnia:</span> https://insomnia.rest/download
+<span style="color: #fbbf24;">Postman:</span> https://www.postman.com/downloads
+
+<span style="color: #52525b;">// Simply set the endpoint URL and send your GraphQL query</span></pre>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Authentication Flow</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        The API uses JWT (JSON Web Tokens) for authentication. Here's the complete flow:
+                    </p>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #52525b;">// Step 1: Login to get your JWT token</span>
+mutation {
+  login(username: "admin", password: "password123") {
+    success
+    token
+    user {
+      id
+      username
+      role
+    }
+  }
+}
+
+<span style="color: #52525b;">// Step 2: Use the token in subsequent requests</span>
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+<span style="color: #52525b;">// Step 3: Token is valid for 6 hours. Include it in the
+//         Authorization header for protected endpoints</span></pre>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Default Credentials</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        The API comes with pre-configured test accounts:
+                    </p>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #4ade80;">Admin:</span>   username: admin   password: password123   role: admin
+<span style="color: #60a5fa;">Staff:</span>   username: staff   password: password123   role: staff
+<span style="color: #fbbf24;">User:</span>    username: user    password: password123   role: user</pre>
+                    </div>
+                </div>
+
                 <!-- Local Installation Section -->
                 <div id="local-install" class="doc-section glass-panel">
                     <div class="section-title">Local Installation</div>
@@ -1300,7 +1579,7 @@ cd GraphQL-Bookstore
 
                     <p style="color: rgba(255,255,255,0.6); margin-top: 15px;">
                         The build script automatically installs dependencies, builds the server, sets up the database, and loads seed data.
-                    </p>
+                    </p><br>
                     
                     <p style="color: rgba(255,255,255,0.6);">
                         <strong>Server:</strong> http://localhost:4000/<br>
@@ -1335,122 +1614,6 @@ sudo docker-compose up --build
                         <div class="code-block">
                             <pre id="docker-stop"># Stop containers:
 sudo docker-compose down</pre>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Usage Section -->
-                <div id="usage" class="doc-section glass-panel">
-                    <div class="section-title">Usage</div>
-                    
-                    <div class="code-block-with-copy">
-                        <div class="code-header">
-                            <div class="code-title">cURL</div>
-                            <button class="copy-button" onclick="copyToClipboard('usage-curl')">Copy</button>
-                        </div>
-                        <div class="code-block">
-                            <pre id="usage-curl">
-# <b>Endpoint: https://api.graphqlbook.store/graphql OR http://localhost:4000/graphql </b><br>
-# Query books (no auth):
-curl -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ books { id title price } }"}'
-
-# Login:
-curl -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"mutation { login(username: \"admin\", password: \"password123\") { success token } }"}'</pre>
-                        </div>
-                    </div>
-
-                    <div class="code-block-with-copy">
-                        <div class="code-header">
-                            <div class="code-title">Postman</div>
-                            <button class="copy-button" onclick="copyToClipboard('usage-postman')">Copy</button>
-                        </div>
-                        <div class="code-block">
-                            <pre id="usage-postman"># Method: POST
-# <b>Endpoint: https://api.graphqlbook.store/graphql OR http://localhost:4000/graphql </b><br>
-
-# Headers: Content-Type: application/json
-# Body (JSON):
-{
-  "query": "{ books { id title price } }"
-}
-
-# With auth:
-# Headers: Authorization: Bearer &lt;your-token&gt;</pre>
-                        </div>
-                    </div>
-
-                    <div class="code-block-with-copy">
-                        <div class="code-header">
-                            <div class="code-title">Online Tools</div>
-                            <button class="copy-button" onclick="copyToClipboard('usage-playground')">Copy</button>
-                        </div>
-                        <div class="code-block">
-                            <pre id="usage-playground">
-
-# Use external tools:
-# - <a href="https://studio.apollographql.com/sandbox/explore" style="color: inherit; text-decoration: none;">Apollo GraphQL Studio </a>
-# - Postman, Insomnia, curl
-
-# <b>Endpoint: https://api.graphqlbook.store/graphql OR http://localhost:4000/graphql </b><br>
-</pre>
-                        </div>
-                    </div>
-
-                    <div class="code-block-with-copy">
-                        <div class="code-header">
-                            <div class="code-title">JavaScript</div>
-                            <button class="copy-button" onclick="copyToClipboard('usage-js')">Copy</button>
-                        </div>
-                        <div class="code-block">
-                            <pre id="usage-js">// Using fetch:
-fetch('http://localhost:4000/graphql', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    query: '{ books { id title price } }'
-  })
-})
-.then(r => r.json())
-.then(d => console.log(d));</pre>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Authentication Section -->
-                <div id="auth" class="doc-section glass-panel">
-                    <div class="section-title">Authentication</div>
-                    <div class="code-block-with-copy">
-                        <div class="code-header">
-                            <div class="code-title">Login & Get JWT Token</div>
-                            <button class="copy-button" onclick="copyToClipboard('auth-login')">Copy</button>
-                        </div>
-                        <div class="code-block">
-                            <pre id="auth-login">mutation {
-  login(username: "admin", password: "password123") {
-    success
-    token
-    user {
-      id
-      username
-      role
-    }
-  }
-}</pre>
-                        </div>
-                    </div>
-
-                    <div class="code-block-with-copy">
-                        <div class="code-header">
-                            <div class="code-title">Use JWT Token</div>
-                            <button class="copy-button" onclick="copyToClipboard('auth-header')">Copy</button>
-                        </div>
-                        <div class="code-block">
-                            <pre id="auth-header"># Include token in Authorization header
-Authorization: Bearer <your-jwt-token></pre>
                         </div>
                     </div>
                 </div>
@@ -1804,8 +1967,8 @@ Authorization: Bearer <your-jwt-token></pre>
             } else if (page === "docs") {
                 document.getElementById("docsPage").style.display = "block";
                 navLinks[1].classList.add("active");
-                // Show local installation section by default when docs page opens
-                showSection('local-install');
+                // Show overview section by default when docs page opens
+                showSection('overview');
             }
         }
 
