@@ -997,10 +997,11 @@ string generateLandingHTML() {
                     <a href="#" class="sidebar-item sub-item" onclick="showSection('local-install')">Local Installation</a>
                     <a href="#" class="sidebar-item sub-item" onclick="showSection('docker-install')">Docker Installation</a>
                     <a href="#" class="sidebar-item sub-item" onclick="showSection('how-to-send-requests')">How To Send Requests</a>
+                    <a href="#" class="sidebar-item sub-item" onclick="showSection('data-types')">Data Types & Schema</a>
+                    <a href="#" class="sidebar-item sub-item" onclick="showSection('queries')">Queries</a>
+                    <a href="#" class="sidebar-item sub-item" onclick="showSection('mutations')">Mutations</a>
+                    <a href="#" class="sidebar-item sub-item" onclick="showSection('vulnerabilities')">Vulnerabilities</a>
                 </div>
-                <a href="#" class="sidebar-item" onclick="showSection('queries')">Queries</a>
-                <a href="#" class="sidebar-item" onclick="showSection('mutations')">Mutations</a>
-                <a href="#" class="sidebar-item" onclick="showSection('vulnerabilities')">Vulnerabilities</a>
             </div>
         </div>
 
@@ -1640,44 +1641,299 @@ docker-compose up --build</pre>
                     </div>
                 </div>
 
+                <!-- Data Types & Schema Section -->
+                <div id="data-types" class="doc-section glass-panel">
+                    <div class="section-title">Data Types & Schema</div>
+                    
+                    <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px; line-height: 1.6;">
+                        This section provides an overview of the GraphQL schema, including available data types and how to explore the API using introspection.
+                    </p>
+
+                    <div class="section-title" style="margin-top: 25px;">Main Data Types</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        The API defines several core types that represent the bookstore data model:
+                    </p>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #fbbf24;">Book</span>         - Represents a book in the catalog
+  id, title, description, price, stockQuantity, categoryId, authorId
+
+<span style="color: #fbbf24;">Author</span>       - Represents a book author
+  id, firstName, lastName, biography
+
+<span style="color: #fbbf24;">User</span>         - Represents a registered user
+  id, username, email, role, firstName, lastName, phone, city
+
+<span style="color: #fbbf24;">Order</span>        - Represents a customer order
+  id, orderNumber, userId, status, totalAmount, createdAt, items
+
+<span style="color: #fbbf24;">OrderItem</span>   - Represents an item in an order
+  id, bookId, quantity, price
+
+<span style="color: #fbbf24;">Cart</span>         - Represents a shopping cart
+  id, userId, items, subtotal, tax, discount, total
+
+<span style="color: #fbbf24;">CartItem</span>     - Represents an item in the cart
+  id, bookId, quantity, price
+
+<span style="color: #fbbf24;">Review</span>       - Represents a book review
+  id, bookId, userId, rating, comment, createdAt
+
+<span style="color: #fbbf24;">Webhook</span>      - Represents a webhook subscription
+  id, userId, url, events, secret, isActive</pre>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Field Selection</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        GraphQL allows you to request only the specific fields you need. This reduces response size and improves performance.
+                    </p>
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Request All Fields</div>
+                            <button class="copy-button" onclick="copyToClipboard('field-all')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="field-all">query {
+  books {
+    id
+    title
+    description
+    price
+    stockQuantity
+    author {
+      firstName
+      lastName
+    }
+  }
+}</pre>
+                        </div>
+                    </div>
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Request Only Specific Fields</div>
+                            <button class="copy-button" onclick="copyToClipboard('field-specific')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="field-specific">query {
+  books {
+    id
+    title
+    price
+  }
+}</pre>
+                        </div>
+                    </div>
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Nested Field Selection</div>
+                            <button class="copy-button" onclick="copyToClipboard('field-nested')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="field-nested">query {
+  cart {
+    id
+    items {
+      bookId
+      quantity
+      book {
+        title
+        price
+      }
+    }
+  }
+}</pre>
+                        </div>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">GraphQL Introspection</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        GraphQL supports introspection, allowing you to query the schema itself to discover available types, fields, and operations.
+                    </p>
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Query All Types</div>
+                            <button class="copy-button" onclick="copyToClipboard('introspect-types')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="introspect-types">query {
+  __schema {
+    types {
+      name
+      kind
+      description
+    }
+  }
+}</pre>
+                        </div>
+                    </div>
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Query Specific Type</div>
+                            <button class="copy-button" onclick="copyToClipboard('introspect-type')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="introspect-type">query {
+  __type(name: "Book") {
+    name
+    kind
+    fields {
+      name
+      type {
+        name
+        kind
+      }
+    }
+  }
+}</pre>
+                        </div>
+                    </div>
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Query All Queries & Mutations</div>
+                            <button class="copy-button" onclick="copyToClipboard('introspect-ops')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="introspect-ops">query {
+  __schema {
+    queryType { name }
+    mutationType { name }
+    subscriptionType { name }
+  }
+}</pre>
+                        </div>
+                    </div>
+                    <div class="code-block-with-copy">
+                        <div class="code-header">
+                            <div class="code-title">Query Type Fields</div>
+                            <button class="copy-button" onclick="copyToClipboard('introspect-fields')">Copy</button>
+                        </div>
+                        <div class="code-block">
+                            <pre id="introspect-fields">query {
+  __schema {
+    queryType {
+      fields {
+        name
+        description
+        type {
+          name
+        }
+        args {
+          name
+          type {
+            name
+          }
+        }
+      }
+    }
+  }
+}</pre>
+                        </div>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Common Filters & Arguments</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 15px; line-height: 1.6;">
+                        Many queries accept arguments to filter, sort, or limit results:
+                    </p>
+                    <div class="code-block">
+                        <pre style="color: #a3a3a3; line-height: 1.8;"><span style="color: #fbbf24;">books</span>(search: String, categoryId: Int, limit: Int)
+  - search: Filter by title or description
+  - categoryId: Filter by category
+  - limit: Limit number of results
+
+<span style="color: #fbbf24;">book</span>(id: Int!)
+  - id: Required - the book ID
+
+<span style="color: #fbbf24;">_searchAdvanced</span>(query: String!)
+  - query: Search query string
+
+<span style="color: #fbbf24;">bookReviews</span>(bookId: Int!)
+  - bookId: Required - filter reviews by book</pre>
+                    </div>
+                </div>
+
                 <!-- Queries Section -->
                 <div id="queries" class="doc-section glass-panel">
                     <div class="section-title">Available Queries</div>
+                    
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 20px; line-height: 1.6;">
+                        Queries are used to fetch data from the API. Some queries require authentication.
+                    </p>
+
+                    <div class="section-title" style="margin-top: 20px;">Public Queries (No Auth Required)</div>
                     <div class="endpoints-grid">
                         <div class="endpoint-card">
                             <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
                             <div class="endpoint-name">books</div>
-                            <div class="endpoint-desc">List books with optional search and filters</div>
+                            <div class="endpoint-desc">List all books with optional search and category filters</div>
                             <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
                                 <button class="copy-button" onclick="copyToClipboard('query-books')">Copy</button>
                                 <code id="query-books">{ books { id title price } }</code>
                             </div>
                         </div>
                         <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
+                            <div class="endpoint-name">book</div>
+                            <div class="endpoint-desc">Get details of a specific book by ID</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('query-book')">Copy</button>
+                                <code id="query-book">{ book(id: 1) { id title price author { firstName } } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
+                            <div class="endpoint-name">bookReviews</div>
+                            <div class="endpoint-desc">Get reviews for a specific book</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('query-book-reviews')">Copy</button>
+                                <code id="query-book-reviews">{ bookReviews(bookId: 1) { id rating comment } }</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Protected Queries (Auth Required)</div>
+                    <div class="endpoints-grid">
+                        <div class="endpoint-card">
                             <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-required">Auth</span></div>
                             <div class="endpoint-name">me</div>
-                            <div class="endpoint-desc">Get current user information</div>
+                            <div class="endpoint-desc">Get current authenticated user information</div>
                             <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
                                 <button class="copy-button" onclick="copyToClipboard('query-me')">Copy</button>
-                                <code id="query-me">{ me { id username role } }</code>
+                                <code id="query-me">{ me { id username role email } }</code>
                             </div>
                         </div>
                         <div class="endpoint-card">
-                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
-                            <div class="endpoint-name">_searchAdvanced</div>
-                            <div class="endpoint-desc">Advanced search</div>
+                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">cart</div>
+                            <div class="endpoint-desc">Get current user's shopping cart</div>
                             <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
-                                <button class="copy-button" onclick="copyToClipboard('query-sqli')">Copy</button>
-                                <code id="query-sqli">{ _searchAdvanced(query: "1 OR 1=1") { id title } }</code>
+                                <button class="copy-button" onclick="copyToClipboard('query-cart')">Copy</button>
+                                <code id="query-cart">{ cart { id items { bookId quantity } totalAmount } }</code>
                             </div>
                         </div>
                         <div class="endpoint-card">
-                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-optional">No Auth</span></div>
-                            <div class="endpoint-name">_internalUserSearch</div>
-                            <div class="endpoint-desc">Search any user by username</div>
+                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">orders</div>
+                            <div class="endpoint-desc">Get current user's order history</div>
                             <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
-                                <button class="copy-button" onclick="copyToClipboard('query-bola')">Copy</button>
-                                <code id="query-bola">{ _internalUserSearch(username: "a") { id role } }</code>
+                                <button class="copy-button" onclick="copyToClipboard('query-orders')">Copy</button>
+                                <code id="query-orders">{ orders { id orderNumber status totalAmount } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">myReviews</div>
+                            <div class="endpoint-desc">Get reviews written by current user</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('query-my-reviews')">Copy</button>
+                                <code id="query-my-reviews">{ myReviews { id rating comment bookId } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-query">Query</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">webhooks</div>
+                            <div class="endpoint-desc">Get current user's registered webhooks</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('query-webhooks')">Copy</button>
+                                <code id="query-webhooks">{ webhooks { id url events isActive } }</code>
                             </div>
                         </div>
                     </div>
@@ -1686,32 +1942,149 @@ docker-compose up --build</pre>
                 <!-- Mutations Section -->
                 <div id="mutations" class="doc-section glass-panel">
                     <div class="section-title">Available Mutations</div>
+                    
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: 20px; line-height: 1.6;">
+                        Mutations are used to modify data. Most mutations require authentication.
+                    </p>
+
+                    <div class="section-title" style="margin-top: 20px;">Authentication Mutations (No Auth Required)</div>
                     <div class="endpoints-grid">
                         <div class="endpoint-card">
                             <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-optional">No Auth</span></div>
                             <div class="endpoint-name">register</div>
-                            <div class="endpoint-desc">Create new user account</div>
+                            <div class="endpoint-desc">Create a new user account</div>
                             <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
                                 <button class="copy-button" onclick="copyToClipboard('mut-register')">Copy</button>
-                                <code id="mut-register">{ register(username: "user", firstName: "John", lastName: "Doe", password: "pass123") { token } }</code>
+                                <code id="mut-register">mutation { register(username: "user", firstName: "John", lastName: "Doe", password: "pass123") { success token } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-optional">No Auth</span></div>
+                            <div class="endpoint-name">login</div>
+                            <div class="endpoint-desc">Authenticate and get JWT token</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-login')">Copy</button>
+                                <code id="mut-login">mutation { login(username: "admin", password: "password123") { success token } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-optional">No Auth</span></div>
+                            <div class="endpoint-name">logout</div>
+                            <div class="endpoint-desc">Logout (discard JWT token client-side)</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-logout')">Copy</button>
+                                <code id="mut-logout">mutation { logout { success } }</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Cart & Order Mutations (Auth Required)</div>
+                    <div class="endpoints-grid">
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">addToCart</div>
+                            <div class="endpoint-desc">Add a book to shopping cart</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-add-cart')">Copy</button>
+                                <code id="mut-add-cart">mutation { addToCart(bookId: 1, quantity: 2) { success } }</code>
                             </div>
                         </div>
                         <div class="endpoint-card">
                             <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
-                            <div class="endpoint-name">updateProfile</div>
-                            <div class="endpoint-desc">Update user profile</div>
+                            <div class="endpoint-name">removeFromCart</div>
+                            <div class="endpoint-desc">Remove a book from shopping cart</div>
                             <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
-                                <button class="copy-button" onclick="copyToClipboard('mut-mass')">Copy</button>
-                                <code id="mut-mass">{ updateProfile(role: "admin") { role } }</code>
+                                <button class="copy-button" onclick="copyToClipboard('mut-remove-cart')">Copy</button>
+                                <code id="mut-remove-cart">mutation { removeFromCart(bookId: 1) { success } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">applyCoupon</div>
+                            <div class="endpoint-desc">Apply a coupon code to cart</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-coupon')">Copy</button>
+                                <code id="mut-coupon">mutation { applyCoupon(code: "DISCOUNT10") { success discount } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">createOrder</div>
+                            <div class="endpoint-desc">Create an order from cart (without payment)</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-create-order')">Copy</button>
+                                <code id="mut-create-order">mutation { createOrder { success orderId } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">purchaseCart</div>
+                            <div class="endpoint-desc">Checkout cart with payment</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-purchase')">Copy</button>
+                                <code id="mut-purchase">mutation { purchaseCart(cardNumber: "4111111111111111", expiry: "12/25", cvv: "123") { success orderId } }</code>
                             </div>
                         </div>
                         <div class="endpoint-card">
                             <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
                             <div class="endpoint-name">cancelOrder</div>
-                            <div class="endpoint-desc"><strong>IDOR</strong> - Cancel any order by ID</div>
+                            <div class="endpoint-desc">Cancel an order</div>
                             <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
-                                <button class="copy-button" onclick="copyToClipboard('mut-idor')">Copy</button>
-                                <code id="mut-idor">{ cancelOrder(orderId: "any-order-id") { success } }</code>
+                                <button class="copy-button" onclick="copyToClipboard('mut-cancel')">Copy</button>
+                                <code id="mut-cancel">mutation { cancelOrder(orderId: "uuid-here") { success } }</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">User & Review Mutations (Auth Required)</div>
+                    <div class="endpoints-grid">
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">updateProfile</div>
+                            <div class="endpoint-desc">Update user profile information</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-update')">Copy</button>
+                                <code id="mut-update">mutation { updateProfile(phone: "1234567890", city: "NYC") { success } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">createReview</div>
+                            <div class="endpoint-desc">Create a review for a book</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-review')">Copy</button>
+                                <code id="mut-review">mutation { createReview(bookId: 1, rating: 5, comment: "Great book!") { success } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">deleteReview</div>
+                            <div class="endpoint-desc">Delete a review</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-delete-review')">Copy</button>
+                                <code id="mut-delete-review">mutation { deleteReview(reviewId: 1) { success } }</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px;">Webhook Mutations (Auth Required)</div>
+                    <div class="endpoints-grid">
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">registerWebhook</div>
+                            <div class="endpoint-desc">Register a webhook URL for notifications</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-webhook')">Copy</button>
+                                <code id="mut-webhook">mutation { registerWebhook(url: "https://example.com/webhook", events: ["order.created"]) { success } }</code>
+                            </div>
+                        </div>
+                        <div class="endpoint-card">
+                            <div class="endpoint-header"><span class="endpoint-method method-mutation">Mutation</span><span class="auth-badge auth-required">Auth</span></div>
+                            <div class="endpoint-name">testWebhook</div>
+                            <div class="endpoint-desc">Test a registered webhook</div>
+                            <div class="code-block" style="margin-top: 8px; font-size: 0.7rem;">
+                                <button class="copy-button" onclick="copyToClipboard('mut-test-webhook')">Copy</button>
+                                <code id="mut-test-webhook">mutation { testWebhook(webhookId: "uuid-here") { success } }</code>
                             </div>
                         </div>
                     </div>
